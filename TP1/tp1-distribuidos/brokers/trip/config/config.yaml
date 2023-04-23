@@ -1,0 +1,8 @@
+valid_columns:
+  start_date: 0
+  start_station_code: 1
+  end_date: 2
+  end_station_code: 3
+  duration: 4
+  year_id: 6
+
