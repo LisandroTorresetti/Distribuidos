@@ -1,0 +1,5 @@
+rainfall_threshold: 30.0
+
+valid_columns:
+  date: 0
+  rainfall: 1
