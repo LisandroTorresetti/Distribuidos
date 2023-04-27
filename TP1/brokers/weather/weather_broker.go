@@ -37,6 +37,7 @@ func (wb *WeatherBroker) ProcessData(data string) error {
 	}
 
 	if wb.isValid(weatherData) {
+		// ToDo: here we should send a message to rabbitMQ
 		log.Infof("IS VALID %s", data)
 		return nil
 	}

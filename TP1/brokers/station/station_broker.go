@@ -39,6 +39,7 @@ func (sb *StationBroker) ProcessData(data string) error {
 	}
 
 	if sb.isValid(tripData) {
+		// ToDo: here we should send a message to rabbitMQ
 		log.Infof("IS VALID %s", data)
 		return nil
 	}
