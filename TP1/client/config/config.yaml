@@ -1,0 +1,8 @@
+batch_size: 50
+batch_delimiter: "PING"
+fin_message: "PONG"
+server_ack: "PONG"
+server_address: "server:12345"
+packet_limit: 8192 # 8 * 1024
+csv_delimiter: ","
+data_delimiter: "|"
