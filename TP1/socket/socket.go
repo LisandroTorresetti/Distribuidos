@@ -1,11 +1,13 @@
-package client
+package socket
 
 import (
 	log "github.com/sirupsen/logrus"
 	"net"
+	"tp1/utils"
 )
 
 type SocketConfig struct {
+	Protocol      string
 	ServerAddress string
 	ServerACK     string
 	PacketLimit   int
@@ -14,6 +16,7 @@ type SocketConfig struct {
 type Socket struct {
 	config     SocketConfig
 	connection net.Conn
+	listener   net.Listener
 }
 
 // NewSocket returns a socket with the corresponding configuration set.
@@ -25,7 +28,7 @@ func NewSocket(socketConfig SocketConfig) *Socket {
 }
 
 func (s *Socket) OpenConnection() error {
-	connection, err := net.Dial("tcp", s.config.ServerAddress)
+	connection, err := net.Dial(s.config.Protocol, s.config.ServerAddress)
 	if err != nil {
 		log.Fatalf(
 			"action: connect | result: fail | error: %v",
@@ -37,7 +40,39 @@ func (s *Socket) OpenConnection() error {
 }
 
 func (s *Socket) CloseConnection() error {
-	return s.connection.Close()
+	if s.connection != nil {
+		return s.connection.Close()
+	}
+	log.Debug("There is none connection to close")
+	return nil
+}
+
+func (s *Socket) StartListener() error {
+	listener, err := net.Listen(s.config.Protocol, s.config.ServerAddress)
+	if err != nil {
+		log.Fatalf(
+			"action: get listener | result: fail | error: %v",
+			err,
+		)
+	}
+	s.listener = listener
+	return nil
+}
+
+func (s *Socket) AcceptNewConnections() error {
+	connection, err := s.listener.Accept()
+	if err != nil {
+		log.Fatalf(
+			"action: accept connection| result: fail | error: %v",
+			err,
+		)
+	}
+	s.connection = connection
+	return nil
+}
+
+func (s *Socket) CloseListener() error {
+	return s.listener.Close()
 }
 
 func (s *Socket) Send(data string) error {
@@ -67,25 +102,30 @@ func (s *Socket) Send(data string) error {
 	return nil
 }
 
-func (s *Socket) ListenResponse(expectedServerACK string) error {
-	response := make([]byte, 0) // Will contain the response from the server
+func (s *Socket) Listen(targetEndMessage string, finMessages []string) ([]byte, error) {
+	message := make([]byte, 0) // Will contain the message
 
 	for {
 		buffer := make([]byte, s.config.PacketLimit)
 		bytesRead, err := s.connection.Read(buffer)
 		if err != nil {
-			log.Errorf("unexpected error while trying to get server response: %s", err.Error())
-			return err
+			log.Errorf("unexpected error while trying to get message: %s", err.Error())
+			return nil, err
 		}
 
-		response = append(response, buffer[:bytesRead]...)
-		size := len(response)
+		message = append(message, buffer[:bytesRead]...)
+		size := len(message)
 
-		if size >= 4 && string(response[size-4:size]) == expectedServerACK {
-			log.Debugf("Got server ACK!")
+		if size >= 4 && string(message[size-4:size]) == targetEndMessage {
+			log.Debugf("Got message correctly!")
+			break
+		}
+
+		if size >= 4 && utils.ContainsString(string(message), finMessages) {
+			log.Debugf("Got FIN message correctly!")
 			break
 		}
 	}
 
-	return nil
+	return message, nil
 }
