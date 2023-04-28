@@ -1,8 +1,14 @@
 batch_size: 50
-batch_delimiter: "PING"
-fin_message: "PONG"
+end_batch_marker: "PING"
+fin_marker: "PONG"
 server_ack: "PONG"
 server_address: "server:12345"
 packet_limit: 8192 # 8 * 1024
 csv_delimiter: ","
 data_delimiter: "|"
+protocol: "tcp"
+test_mode: true
+fin_ack_messages:
+  - "weather-PONG"
+  - "stations-PONG"
+  - "trips-PONG"

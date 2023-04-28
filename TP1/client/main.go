@@ -1,4 +1,4 @@
-package client
+package main
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 )
 
 func LoadClientConfig() (ClientConfig, error) {
-	configFile, err := utils.GetConfigFile("client/config/config.yaml")
+	configFile, err := utils.GetConfigFile("./config/config.yaml")
 	if err != nil {
 		return ClientConfig{}, err
 	}
@@ -48,22 +48,29 @@ func main() {
 	}
 
 	clientConfig, err := LoadClientConfig()
+	if err != nil {
+		logrus.Errorf(err.Error())
+		return
+	}
 	client := NewClient(clientConfig)
 
 	err = client.OpenConnection()
 	if err != nil {
 		logrus.Errorf(err.Error())
+		return
 	}
 
 	err = client.SendWeatherData()
 
 	if err != nil {
 		logrus.Errorf(err.Error())
+		return
 	}
 
 	err = client.CloseConnection()
 	if err != nil {
 		logrus.Errorf(err.Error())
+		return
 	}
 	log.Debug("Finish main.go")
 }
