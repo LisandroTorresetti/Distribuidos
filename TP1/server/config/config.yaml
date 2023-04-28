@@ -1,0 +1,12 @@
+port: "12345"
+ip: "server"
+end_batch_marker: "PING"
+ack_message: "PONG"
+data_delimiter: "|"
+max_amount_of_connections: 5
+packet_limit: 8192 # 8 * 1024
+protocol: "tcp"
+fin_messages:
+  - "weather-PONG"
+  - "stations-PONG"
+  - "trips-PONG"
