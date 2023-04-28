@@ -3,7 +3,6 @@ package client
 import (
 	log "github.com/sirupsen/logrus"
 	"net"
-	"strings"
 )
 
 type SocketConfig struct {
@@ -41,16 +40,14 @@ func (s *Socket) CloseConnection() error {
 	return s.connection.Close()
 }
 
-func (s *Socket) SendBatch(batch []string, delimiter string) error {
-	// Join data with |, e.g data1|data2|data3|...
-	dataJoined := strings.Join(batch, delimiter)
-	dataAsBytes := []byte(dataJoined)
+func (s *Socket) Send(data string) error {
+	dataAsBytes := []byte(data)
 	messageLength := len(dataAsBytes)
 
 	shortWriteAvoidance := 0
 	amountOfBytesSent := 0
 
-	for amountOfBytesSent != messageLength {
+	for amountOfBytesSent < messageLength {
 		lowerLimit := amountOfBytesSent - shortWriteAvoidance
 		upperLimit := lowerLimit + s.config.PacketLimit
 
@@ -65,14 +62,6 @@ func (s *Socket) SendBatch(batch []string, delimiter string) error {
 		}
 		amountOfBytesSent += bytesSent
 		shortWriteAvoidance = len(bytesToSend) - bytesSent
-	}
-
-	debugCity := strings.SplitN(batch[0], ",", 2)[0]
-	log.Debugf("[city: %s] data sent, waiting for server ACK", debugCity)
-
-	err := s.ListenResponse(s.config.ServerACK)
-	if err != nil {
-		log.Debugf("[city: %s] error while wainting for server ACK: %s", debugCity, err.Error())
 	}
 
 	return nil
