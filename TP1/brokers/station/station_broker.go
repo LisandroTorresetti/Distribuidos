@@ -6,9 +6,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
+	dataErrors "tp1/brokers/errors"
 	"tp1/brokers/station/config"
 	"tp1/domain/entities/station"
-	dataErrors "tp1/errors"
 )
 
 const (

@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	dataErrors "tp1/brokers/errors"
 	"tp1/brokers/weather/config"
 	"tp1/domain/entities/weather"
-	dataErrors "tp1/errors"
 )
 
 const dateLayout = "2023-04-22"
