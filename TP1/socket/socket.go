@@ -39,6 +39,10 @@ func (s *Socket) OpenConnection() error {
 	return nil
 }
 
+func (s *Socket) SetConnection(connection net.Conn) {
+	s.connection = connection
+}
+
 func (s *Socket) CloseConnection() error {
 	if s.connection != nil {
 		return s.connection.Close()
@@ -59,16 +63,16 @@ func (s *Socket) StartListener() error {
 	return nil
 }
 
-func (s *Socket) AcceptNewConnections() error {
+func (s *Socket) AcceptNewConnections() (net.Conn, error) {
 	connection, err := s.listener.Accept()
 	if err != nil {
 		log.Fatalf(
 			"action: accept connection| result: fail | error: %v",
 			err,
 		)
+		return nil, err
 	}
-	s.connection = connection
-	return nil
+	return connection, nil
 }
 
 func (s *Socket) CloseListener() error {
