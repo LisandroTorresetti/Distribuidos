@@ -1,0 +1,29 @@
+version: '3.9'
+services:
+  server:
+    container_name: server
+    image: server:latest
+    entrypoint: ./main
+    environment:
+      - LOG_LEVEL=DEBUG
+    networks:
+      - testing_net
+
+  client:
+    container_name: client
+    image: client:latest
+    entrypoint: ./main
+    environment:
+      - TEST_MODE=true
+      - LOG_LEVEL=DEBUG
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+networks:
+  testing_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.125.0/24
