@@ -32,7 +32,7 @@ type ClientConfig struct {
 	DataDelimiter  string   `yaml:"data_delimiter"`
 	EndBatchMarker string   `yaml:"end_batch_marker"`
 	Protocol       string   `yaml:"protocol"`
-	TestMode       bool     `yaml:"test_mode"`
+	TestMode       bool
 }
 
 type Client struct {
@@ -226,6 +226,7 @@ func (c *Client) sendBatch(batch []string) error {
 	_, err = c.clientSocket.Listen(c.config.ServerACK, []string{})
 	if err != nil {
 		log.Debugf("[city: %s] error while wainting for server ACK: %s", debugCity, err.Error())
+		return err
 	}
 
 	return nil
@@ -236,7 +237,7 @@ func (c *Client) sendBatch(batch []string) error {
 // + Filename possible values: weather, stations, trips
 func (c *Client) getFilePath(city string, filename string) string {
 	if c.config.TestMode {
-		return fmt.Sprintf("/datasets/test/%s/%s_test.%s", city, filename, fileFormat)
+		return fmt.Sprintf("./datasets/test/%s/%s_test.%s", city, filename, fileFormat)
 	}
-	return fmt.Sprintf("/datasets/%s/%s.%s", city, filename, fileFormat)
+	return fmt.Sprintf("./datasets/%s/%s.%s", city, filename, fileFormat)
 }

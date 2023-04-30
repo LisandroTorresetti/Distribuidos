@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"gopkg.in/yaml.v3"
+	"os"
 	"tp1/utils"
 
 	"github.com/sirupsen/logrus"
@@ -43,7 +44,11 @@ func InitLogger(logLevel string) error {
 }
 
 func main() {
-	if err := InitLogger("info"); err != nil {
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "DEBUG"
+	}
+	if err := InitLogger(logLevel); err != nil {
 		log.Fatalf("%s", err)
 		return
 	}

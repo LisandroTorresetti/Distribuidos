@@ -7,7 +7,6 @@ packet_limit: 8192 # 8 * 1024
 csv_delimiter: ","
 data_delimiter: "|"
 protocol: "tcp"
-test_mode: true
 fin_ack_messages:
   - "weather-PONG"
   - "stations-PONG"

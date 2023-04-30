@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"gopkg.in/yaml.v3"
+	"os"
 	"sync"
 	"tp1/utils"
 
@@ -11,8 +12,6 @@ import (
 )
 
 var dataTypes = []string{"weather", "stations", "trips"}
-
-//[]string{"weather", "stations", "trips"}
 
 func LoadClientConfig() (ClientConfig, error) {
 	configFile, err := utils.GetConfigFile("./config/config.yaml")
@@ -25,6 +24,9 @@ func LoadClientConfig() (ClientConfig, error) {
 	if err != nil {
 		return ClientConfig{}, fmt.Errorf("error parsing client config file: %s", err)
 	}
+
+	testMode := os.Getenv("TEST_MODE")
+	clientConfig.TestMode = testMode == "true"
 
 	return clientConfig, nil
 }
@@ -48,7 +50,11 @@ func InitLogger(logLevel string) error {
 }
 
 func main() {
-	if err := InitLogger("info"); err != nil {
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "DEBUG"
+	}
+	if err := InitLogger(logLevel); err != nil {
 		log.Fatalf("%s", err)
 	}
 
@@ -57,6 +63,8 @@ func main() {
 		logrus.Errorf(err.Error())
 		return
 	}
+
+	log.Debugf("client config: %+v", clientConfig)
 
 	var wg sync.WaitGroup
 	for _, data := range dataTypes {

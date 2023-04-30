@@ -90,7 +90,7 @@ func processData(s *Server, socket *socket.Socket) error {
 			return err
 		}
 		message := string(messageBytes)
-		log.Debug("received message: %s", message)
+		log.Debugf("received message: %s", message)
 
 		// If we received a FIN message, the response is the same FIN message
 		if utils.ContainsString(message, s.config.FinMessages) {
@@ -99,7 +99,7 @@ func processData(s *Server, socket *socket.Socket) error {
 				log.Errorf("error sending ACK to FIN message %s: %s", message, err.Error())
 				return err
 			}
-			log.Debug("Fin message ACK sended correctly")
+			log.Debug("Fin message ACK sent correctly")
 			break
 		}
 
