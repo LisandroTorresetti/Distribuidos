@@ -3,11 +3,16 @@ package main
 import (
 	"fmt"
 	"gopkg.in/yaml.v3"
+	"sync"
 	"tp1/utils"
 
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
+
+var dataTypes = []string{"weather", "stations", "trips"}
+
+//[]string{"weather", "stations", "trips"}
 
 func LoadClientConfig() (ClientConfig, error) {
 	configFile, err := utils.GetConfigFile("./config/config.yaml")
@@ -52,25 +57,55 @@ func main() {
 		logrus.Errorf(err.Error())
 		return
 	}
-	client := NewClient(clientConfig)
 
-	err = client.OpenConnection()
-	if err != nil {
-		logrus.Errorf(err.Error())
-		return
+	var wg sync.WaitGroup
+	for _, data := range dataTypes {
+		wg.Add(1)
+		client := NewClient(clientConfig)
+
+		go func(data string) {
+			defer wg.Done()
+			err := sendData(client, data)
+			if err != nil {
+				fmt.Printf("error sendind %s data from cliente: %s", data, err.Error())
+			}
+		}(data)
 	}
 
-	err = client.SendWeatherData()
+	log.Debug("[client] Waiting for threads")
+	wg.Wait()
+	log.Debug("[client] Finish main.go")
+}
+
+func sendData(client *Client, data string) error {
+	err := client.OpenConnection()
+	if err != nil {
+		logrus.Errorf(err.Error())
+		return err
+	}
+
+	if data == "weather" {
+		err = client.SendWeatherData()
+	}
+
+	if data == "trips" {
+		err = client.SendTripsData()
+	}
+
+	if data == "stations" {
+		err = client.SendStationsData()
+	}
 
 	if err != nil {
 		logrus.Errorf(err.Error())
-		return
+		return err
 	}
 
 	err = client.CloseConnection()
 	if err != nil {
 		logrus.Errorf(err.Error())
-		return
+		return err
 	}
-	log.Debug("Finish main.go")
+
+	return nil
 }

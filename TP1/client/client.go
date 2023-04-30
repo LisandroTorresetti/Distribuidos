@@ -200,12 +200,13 @@ func (c *Client) sendFinMessage(dataType string) error {
 	}
 
 	log.Debugf("[data sent: %s] waiting for server response to FIN MESSAGE %s", dataType, finMessage)
-	_, err = c.clientSocket.Listen("", c.config.FinACKMessages)
+	response, err := c.clientSocket.Listen("", c.config.FinACKMessages)
 	if err != nil {
 		log.Errorf("error waiting for server response to fin message %s: %s", finMessage, err.Error())
 		return err
 	}
 
+	log.Debugf("[client][data sent: %s] Got server response %s", dataType, string(response))
 	return nil
 }
 

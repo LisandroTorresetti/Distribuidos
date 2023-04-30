@@ -59,15 +59,31 @@ func (s *Server) Run() error {
 	}(s.serverSocket)
 
 	for {
-		// ToDo: improve this, because now if we receive one batch we start the loop again
+		log.Debug("[server] waiting for new connections")
 		// Accept new connection
-		err = s.serverSocket.AcceptNewConnections()
+		conn, err := s.serverSocket.AcceptNewConnections()
 		if err != nil {
+			log.Errorf("[server] error accepting a new connection: %s", err.Error())
 			return err
 		}
+		log.Debug("[server] connection accepted!")
 
+		newSocket := *s.serverSocket
+		newSocket.SetConnection(conn)
+
+		go func(s *Server, serverSocket *socket.Socket) {
+			err := processData(s, serverSocket)
+			if err != nil {
+				log.Errorf("error processing data: %s", err.Error())
+			}
+		}(s, &newSocket)
+	}
+}
+
+func processData(s *Server, socket *socket.Socket) error {
+	for {
 		// Wait till receive the entire message data1|data2|...|dataN|PING or x-PONG
-		messageBytes, err := s.serverSocket.Listen(s.config.EndBatchMarker, s.config.FinMessages)
+		messageBytes, err := socket.Listen(s.config.EndBatchMarker, s.config.FinMessages)
 
 		if err != nil {
 			log.Errorf("[server] error receiving message from a client: %s", err.Error())
@@ -78,7 +94,7 @@ func (s *Server) Run() error {
 
 		// If we received a FIN message, the response is the same FIN message
 		if utils.ContainsString(message, s.config.FinMessages) {
-			err = s.serverSocket.Send(message)
+			err = socket.Send(message)
 			if err != nil {
 				log.Errorf("error sending ACK to FIN message %s: %s", message, err.Error())
 				return err
@@ -87,12 +103,11 @@ func (s *Server) Run() error {
 			break
 		}
 
-		err = s.serverSocket.Send(s.config.AckMessage)
+		err = socket.Send(s.config.AckMessage)
 		if err != nil {
 			log.Errorf("[server] error sending ACK to client: %s", err.Error())
 			return err
 		}
 	}
-	log.Debug("Finish server loop, closing everything...")
 	return nil
 }
