@@ -19,10 +19,10 @@ type TripBroker struct {
 	delimiter string
 }
 
-func NewTripBroker(delimiter string, weatherBrokerConfig *config.TripConfig) *TripBroker {
+func NewTripBroker(delimiter string, tripBrokerConfig *config.TripConfig) *TripBroker {
 	return &TripBroker{
 		delimiter: delimiter,
-		config:    weatherBrokerConfig,
+		config:    tripBrokerConfig,
 	}
 }
 

@@ -21,10 +21,10 @@ type StationBroker struct {
 	delimiter string
 }
 
-func NewStationBroker(delimiter string, weatherBrokerConfig *config.StationConfig) *StationBroker {
+func NewStationBroker(delimiter string, stationBrokerConfig *config.StationConfig) *StationBroker {
 	return &StationBroker{
 		delimiter: delimiter,
-		config:    weatherBrokerConfig,
+		config:    stationBrokerConfig,
 	}
 }
 
