@@ -55,13 +55,13 @@ func main() {
 
 	serverConfig, err := LoadServerConfig()
 	if err != nil {
-		log.Error("Error loading server data: %s", err.Error())
+		log.Errorf("Error loading server data: %s", err.Error())
 		return
 	}
 	server := NewServer(serverConfig)
 	err = server.DeclareQueues()
 	if err != nil {
-		log.Error("Error declaring RabbitMQ queues: %s", err.Error())
+		log.Errorf("Error declaring RabbitMQ queues: %s", err.Error())
 		return
 	}
 

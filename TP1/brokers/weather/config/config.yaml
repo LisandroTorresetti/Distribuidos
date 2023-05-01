@@ -9,29 +9,29 @@ input_queues:
   weather_filter_queue:
     name: "weather_filter_queue"
     declaration_config:
-      - durable: true
-      - delete_when_unused: false
-      - exclusive: false
-      - no_wait: false
+      durable: true
+      delete_when_unused: false
+      exclusive: false
+      no_wait: false
 
     consumption_config:
-      - consumer: ""
-      - auto_ack: false
-      - exclusive: false
-      - no_local: false
-      - no_wait: false
+      consumer: ""
+      auto_ack: false
+      exclusive: false
+      no_local: false
+      no_wait: false
 
 
 output_queues:
   rain_accumulator:
     name: "rain_accumulator"
     declaration_config:
-      - durable: true
-      - delete_when_unused: false
-      - exclusive: false
-      - no_wait: false
+      durable: true
+      delete_when_unused: false
+      exclusive: false
+      no_wait: false
 
     publishing_config:
-      - exchange: ""
-      - mandatory: false
-      - content_type: "application/json"
+      exchange: ""
+      mandatory: false
+      content_type: "application/json"

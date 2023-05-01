@@ -44,7 +44,7 @@ func NewServer(config ServerConfig) *Server {
 }
 
 func (s *Server) DeclareQueues() error {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial("amqp://guest:guest@rabbit:5672/")
 	if err != nil {
 		return fmt.Errorf("failed to connect to RabbitMQ: %s", err.Error())
 	}

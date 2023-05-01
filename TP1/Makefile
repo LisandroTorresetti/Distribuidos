@@ -6,7 +6,7 @@ build-images:
 	docker build -f ./client/Dockerfile -t "client:latest" .
 .PHONY: build-images
 
-mandale-mecha: build-images
+mandale-mecha:
 	docker-compose -f docker-compose.yaml up -d --build
 .PHONY: mandale-mecha
 

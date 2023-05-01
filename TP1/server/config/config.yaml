@@ -15,12 +15,12 @@ queues:
   weather_filter_queue:
     name: "weather_filter_queue"
     declaration_config:
-      - durable: true
-      - delete_when_unused: false
-      - exclusive: false
-      - no_wait: false
+      durable: true
+      delete_when_unused: false
+      exclusive: false
+      no_wait: false
 
     publishing_config:
-      - exchange: ""
-      - mandatory: false
-      - content_type: "text/plain"
+      exchange: ""
+      mandatory: false
+      content_type: "text/plain"

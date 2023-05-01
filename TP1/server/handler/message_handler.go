@@ -35,7 +35,7 @@ func NewMessageHandler(config MessageHandlerConfig, handlerSocket *socket.Socket
 }
 
 func (mh *MessageHandler) ProcessData() error {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial("amqp://guest:guest@rabbit:5672/")
 	if err != nil {
 		return fmt.Errorf("failed to connect to RabbitMQ: %s", err.Error())
 	}
@@ -98,7 +98,7 @@ func (mh *MessageHandler) ProcessData() error {
 			}
 
 			if targetQueue == "" {
-				targetQueue = strings.SplitN(message, ",", 2)[0]
+				targetQueue = strings.SplitN(message, ",", 2)[0] // targetQueue could be: weather, trips or stations
 				targetQueue += filterQueue
 			}
 
@@ -119,6 +119,7 @@ func (mh *MessageHandler) publishMessage(ctx context.Context, channel *amqp.Chan
 	}
 
 	publishConfig := queueConfig.PublishingConfig
+	log.Infof("Publishing message in %s", queueConfig.Name)
 
 	return channel.PublishWithContext(ctx,
 		publishConfig.Exchange,

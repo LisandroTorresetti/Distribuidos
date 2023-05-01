@@ -170,7 +170,7 @@ func (c *Client) sendDataFromFile(filepath string, city string, data string) err
 			// sanity check
 			break
 		}
-		line = city + c.config.CSVDelimiter + line //prepend city to data
+		line = data + c.config.CSVDelimiter + city + c.config.CSVDelimiter + line //prepend data type and city to data
 		dataToSend = append(dataToSend, line)
 		dataCounter += 1
 	}
@@ -214,7 +214,7 @@ func (c *Client) sendFinMessage(dataType string) error {
 func (c *Client) sendBatch(batch []string) error {
 	debugCity := strings.SplitN(batch[0], ",", 2)[0]
 
-	// Join data with |, e.g data1|data2|data3|...
+	// Join data with |, e.g data1|data2|data3|..., eg od data: dataType,city,weatherField1,weatherField2,...
 	dataJoined := strings.Join(batch, c.config.DataDelimiter)
 	dataJoined = dataJoined + c.config.DataDelimiter + c.config.EndBatchMarker // the message to send has the following format: data1|data2|data3|...|dataN|PING
 	err := c.clientSocket.Send(dataJoined)
