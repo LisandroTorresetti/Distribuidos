@@ -12,14 +12,14 @@ const configFilepath = "/weather/config/config.yaml"
 
 // weatherValidColumns contains the index of each field to analyze
 type weatherValidColumns struct {
-	Date         int                                 `yaml:"date"`
-	Rainfall     int                                 `yaml:"rainfall"`
-	InputQueues  map[string][]communication.RabbitMQ `yaml:"input_queues"`
-	OutputQueues map[string][]communication.RabbitMQ `yaml:"output_queues"`
+	Date     int `yaml:"date"`
+	Rainfall int `yaml:"rainfall"`
 }
 type WeatherConfig struct {
-	RainfallThreshold       float64             `yaml:"rainfall_threshold"`
-	ValidColumnsIndexes     weatherValidColumns `yaml:"valid_columns"`
+	RainfallThreshold       float64                             `yaml:"rainfall_threshold"`
+	ValidColumnsIndexes     weatherValidColumns                 `yaml:"valid_columns"`
+	InputQueues             map[string][]communication.RabbitMQ `yaml:"input_queues"`
+	OutputQueues            map[string][]communication.RabbitMQ `yaml:"output_queues"`
 	FinishProcessingMessage string
 }
 

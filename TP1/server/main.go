@@ -59,6 +59,12 @@ func main() {
 		return
 	}
 	server := NewServer(serverConfig)
+	err = server.DeclareQueues()
+	if err != nil {
+		log.Error("Error declaring RabbitMQ queues: %s", err.Error())
+		return
+	}
+
 	err = server.Run()
 	if err != nil {
 		log.Error("Error running server: %s", err.Error())

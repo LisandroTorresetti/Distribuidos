@@ -7,7 +7,7 @@ services:
     environment:
       - LOG_LEVEL=DEBUG
     networks:
-      - testing_net
+      - bikers
 
   client:
     container_name: client
@@ -17,12 +17,20 @@ services:
       - TEST_MODE=true
       - LOG_LEVEL=DEBUG
     networks:
-      - testing_net
+      - bikers
     depends_on:
       - server
 
+  rabbit:
+    container_name: rabbit
+    image: rabbitmq
+    ports:
+      - '5672:5672'
+    networks:
+      - bikers
+
 networks:
-  testing_net:
+  bikers:
     ipam:
       driver: default
       config:

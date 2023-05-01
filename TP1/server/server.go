@@ -1,27 +1,30 @@
 package main
 
 import (
+	"fmt"
+	amqp "github.com/rabbitmq/amqp091-go"
 	log "github.com/sirupsen/logrus"
+	"tp1/domain/communication"
+	"tp1/server/handler"
 	"tp1/socket"
-	"tp1/utils"
 )
 
 type ServerConfig struct {
-	Port                   string   `yaml:"port"`
-	IP                     string   `yaml:"ip"`
-	AckMessage             string   `yaml:"ack_message"`
-	EndBatchMarker         string   `yaml:"end_batch_marker"`
-	FinMessages            []string `yaml:"fin_messages"`
-	DataDelimiter          string   `yaml:"data_delimiter"`
-	MaxAmountOfConnections int      `yaml:"max_amount_of_connections"`
-	Protocol               string   `yaml:"protocol"`
-	PacketLimit            int      `yaml:"packet_limit"`
+	Port                   string                            `yaml:"port"`
+	IP                     string                            `yaml:"ip"`
+	AckMessage             string                            `yaml:"ack_message"`
+	EndBatchMarker         string                            `yaml:"end_batch_marker"`
+	FinMessages            []string                          `yaml:"fin_messages"`
+	DataDelimiter          string                            `yaml:"data_delimiter"`
+	MaxAmountOfConnections int                               `yaml:"max_amount_of_connections"`
+	Protocol               string                            `yaml:"protocol"`
+	PacketLimit            int                               `yaml:"packet_limit"`
+	QueuesConfigs          map[string]communication.RabbitMQ `yaml:"queues"`
 }
 
 type Server struct {
 	config       ServerConfig
 	serverSocket *socket.Socket
-	//messageHandler *MessageHandler
 }
 
 func NewServer(config ServerConfig) *Server {
@@ -38,6 +41,38 @@ func NewServer(config ServerConfig) *Server {
 		serverSocket: serverSocket,
 		config:       config,
 	}
+}
+
+func (s *Server) DeclareQueues() error {
+	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	if err != nil {
+		return fmt.Errorf("failed to connect to RabbitMQ: %s", err.Error())
+	}
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	if err != nil {
+		return fmt.Errorf("failed to open a channel: %s", err.Error())
+	}
+	defer ch.Close()
+
+	for _, queueConfig := range s.config.QueuesConfigs {
+		declareConfig := queueConfig.DeclarationConfig
+		_, err = ch.QueueDeclare(
+			queueConfig.Name,
+			declareConfig.Durable,
+			declareConfig.DeleteWhenUnused,
+			declareConfig.Exclusive,
+			declareConfig.NoWait,
+			nil,
+		)
+		if err != nil {
+			return fmt.Errorf("error declaring queue %s", queueConfig.Name)
+		}
+		log.Debugf("queue %s declared correctly", queueConfig.Name)
+	}
+	return nil
+
 }
 
 func (s *Server) Run() error {
@@ -71,43 +106,21 @@ func (s *Server) Run() error {
 		newSocket := *s.serverSocket
 		newSocket.SetConnection(conn)
 
-		go func(s *Server, serverSocket *socket.Socket) {
-			err := processData(s, serverSocket)
+		messageHandler := handler.NewMessageHandler(
+			handler.MessageHandlerConfig{
+				EndBatchMarker: s.config.EndBatchMarker,
+				FinMessages:    s.config.FinMessages,
+				AckMessage:     s.config.AckMessage,
+			},
+			&newSocket,
+			s.config.QueuesConfigs,
+		)
+
+		go func() {
+			err := messageHandler.ProcessData()
 			if err != nil {
 				log.Errorf("error processing data: %s", err.Error())
 			}
-		}(s, &newSocket)
+		}()
 	}
-}
-
-func processData(s *Server, socket *socket.Socket) error {
-	for {
-		// Wait till receive the entire message data1|data2|...|dataN|PING or x-PONG
-		messageBytes, err := socket.Listen(s.config.EndBatchMarker, s.config.FinMessages)
-
-		if err != nil {
-			log.Errorf("[server] error receiving message from a client: %s", err.Error())
-			return err
-		}
-		message := string(messageBytes)
-		log.Debugf("received message: %s", message)
-
-		// If we received a FIN message, the response is the same FIN message
-		if utils.ContainsString(message, s.config.FinMessages) {
-			err = socket.Send(message)
-			if err != nil {
-				log.Errorf("error sending ACK to FIN message %s: %s", message, err.Error())
-				return err
-			}
-			log.Debug("Fin message ACK sent correctly")
-			break
-		}
-
-		err = socket.Send(s.config.AckMessage)
-		if err != nil {
-			log.Errorf("[server] error sending ACK to client: %s", err.Error())
-			return err
-		}
-	}
-	return nil
 }
