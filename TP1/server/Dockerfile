@@ -5,7 +5,10 @@ COPY ../go.mod .
 COPY ../go.sum .
 COPY ../socket/ ./socket/
 COPY ../utils/ ./utils/
-COPY /server/ .
+COPY ../server/handler/ ./server/handler/
+COPY ../server/*.go .
+COPY ../server/config/ ./config/
+COPY ../domain/communication/ ./domain/communication/
 
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o main

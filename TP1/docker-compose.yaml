@@ -8,6 +8,8 @@ services:
       - LOG_LEVEL=DEBUG
     networks:
       - bikers
+    depends_on:
+      - rabbit
 
   client:
     container_name: client
@@ -31,7 +33,4 @@ services:
 
 networks:
   bikers:
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.25.125.0/24
+    name: bikers
