@@ -24,11 +24,31 @@ services:
     depends_on:
       - server
 
-  broker:
-    container_name: broker
+  broker1:
+    container_name: broker1
     image: brokers:latest
     entrypoint: ./main
     environment:
+      - BROKER_ID=1
+      - CITY=montreal
+      - BROKER_TYPE=weather-broker
+      - FINISH_PROCESSING_MESSAGE=weather-PONG
+      - LOG_LEVEL=DEBUG
+    networks:
+      - bikers
+    depends_on:
+      - rabbit
+      - server
+
+  broker2:
+    container_name: broker2
+    image: brokers:latest
+    entrypoint: ./main
+    environment:
+      - BROKER_ID=2
+      - CITY=montreal
+      - BROKER_TYPE=weather-broker
+      - FINISH_PROCESSING_MESSAGE=weather-PONG
       - LOG_LEVEL=DEBUG
     networks:
       - bikers
