@@ -1,6 +1,7 @@
 package communication
 
 type RabbitMQ struct {
+	Name                      string                    `yaml:"name"`
 	QueueDeclarationConfig    QueueDeclarationConfig    `yaml:"queue_declaration_config"`
 	ExchangeDeclarationConfig ExchangeDeclarationConfig `yaml:"exchange_declaration_config"`
 	PublishingConfig          PublishingConfig          `yaml:"publishing_config"`
@@ -42,4 +43,7 @@ type ConsumptionConfig struct {
 	Exclusive bool   `yaml:"exclusive"`
 	NoLocal   bool   `yaml:"no_local"`
 	NoWait    bool   `yaml:"no_wait"`
+}
+
+type BindingConfig struct {
 }

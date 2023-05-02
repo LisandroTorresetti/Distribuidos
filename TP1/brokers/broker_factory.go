@@ -1,4 +1,4 @@
-package brokers
+package main
 
 import (
 	"fmt"
@@ -11,25 +11,25 @@ import (
 )
 
 type IBroker interface {
-	ProcessData(string) error
+	ProcessInputMessages() error
+	DeclareQueues() error
+	DeclareExchanges() error
 }
 
-type BrokerType string
-
 var (
-	weatherBroker  BrokerType = "weather-broker"
-	stationsBroker BrokerType = "stations-broker"
-	tripBroker     BrokerType = "trip-broker"
+	weatherBroker  = "weather-broker"
+	stationsBroker = "stations-broker"
+	tripBroker     = "trip-broker"
 )
 
-func NewBroker(broker BrokerType, delimiter string) (IBroker, error) {
+func NewBroker(broker string, delimiter string) (IBroker, error) {
 	switch broker {
 	case weatherBroker:
 		return createWeatherBroker(delimiter)
-	case tripBroker:
+	/*case tripBroker:
 		return createTripBroker(delimiter)
 	case stationsBroker:
-		return createStationBroker(delimiter)
+		return createStationBroker(delimiter)*/
 	default:
 		return nil, fmt.Errorf("invalid broker type: %s. Must be: %s, %s or %s", broker, weatherBroker, stationsBroker, tripBroker)
 	}
