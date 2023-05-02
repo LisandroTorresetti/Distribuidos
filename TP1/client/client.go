@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	cities       = []string{"montreal", "toronto", "washington"}
+	cities       = []string{"montreal"}
 	errorMessage = "error sending %s data from %s: %s"
 )
 
