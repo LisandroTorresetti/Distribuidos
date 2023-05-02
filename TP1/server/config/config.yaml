@@ -11,16 +11,20 @@ fin_messages:
   - "stations-PONG"
   - "trips-PONG"
 
-queues:
-  weather_filter_queue:
-    name: "weather_filter_queue"
-    declaration_config:
-      durable: true
-      delete_when_unused: false
-      exclusive: false
-      no_wait: false
+rabbit_mq:
+    weather:
+      exchange_declaration_config:
+        name: "weather_topic"
+        type: "topic"
+        durable: true
+        auto_deleted: false
+        internal: false
+        no_wait: false
 
-    publishing_config:
-      exchange: ""
-      mandatory: false
-      content_type: "text/plain"
+      publishing_config:
+        exchange: "weather_topic"
+        mandatory: false
+        immediate: false
+        content_type: "text/plain"
+
+# ToDo: add exchanges for other data types: stations and trips

@@ -12,8 +12,6 @@ import (
 	"tp1/utils"
 )
 
-const filterQueue = "_filter_queue"
-
 type MessageHandlerConfig struct {
 	EndBatchMarker string
 	FinMessages    []string
@@ -21,16 +19,16 @@ type MessageHandlerConfig struct {
 }
 
 type MessageHandler struct {
-	config        MessageHandlerConfig
-	handlerSocket *socket.Socket
-	queuesConfigs map[string]communication.RabbitMQ
+	config         MessageHandlerConfig
+	handlerSocket  *socket.Socket
+	rabbitMQConfig map[string]communication.RabbitMQ
 }
 
 func NewMessageHandler(config MessageHandlerConfig, handlerSocket *socket.Socket, queuesConfigs map[string]communication.RabbitMQ) *MessageHandler {
 	return &MessageHandler{
-		config:        config,
-		handlerSocket: handlerSocket,
-		queuesConfigs: queuesConfigs,
+		config:         config,
+		handlerSocket:  handlerSocket,
+		rabbitMQConfig: queuesConfigs,
 	}
 }
 
@@ -60,7 +58,7 @@ func (mh *MessageHandler) ProcessData() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	targetQueue := ""
+	targetExchange := ""
 
 	for {
 		// Wait till receive the entire message data1|data2|...|dataN|PING or x-PONG
@@ -82,7 +80,10 @@ func (mh *MessageHandler) ProcessData() error {
 			}
 			log.Debug("Fin message ACK sent correctly")
 
-			err = mh.publishMessage(ctx, ch, message, targetQueue)
+			routingKey := targetExchange + ".eof"
+			log.Debugf("Fin message routing key %s", routingKey)
+
+			err = mh.publishMessage(ctx, ch, message, targetExchange, routingKey)
 			if err != nil {
 				log.Errorf("error publishing FIN Message: %s", err.Error())
 				return err
@@ -97,12 +98,14 @@ func (mh *MessageHandler) ProcessData() error {
 				return err
 			}
 
-			if targetQueue == "" {
-				targetQueue = strings.SplitN(message, ",", 2)[0] // targetQueue could be: weather, trips or stations
-				targetQueue += filterQueue
-			}
+			splitMessage := strings.SplitN(message, ",", 3)
+			targetExchange = splitMessage[0] // targetExchange could be: weather, trips or stations
+			city := splitMessage[1]          // city could be: montreal, toronto or washington
+			randomID := getRandomID()
+			routingKey := fmt.Sprintf("%s.%s.%v", targetExchange, city, randomID)
+			log.Debugf("Generated routing key %s", routingKey)
 
-			err = mh.publishMessage(ctx, ch, message, targetQueue)
+			err = mh.publishMessage(ctx, ch, message, targetExchange, routingKey)
 			if err != nil {
 				log.Errorf("error publishing DATA message %s: %s", message, err.Error())
 				return err
@@ -112,24 +115,37 @@ func (mh *MessageHandler) ProcessData() error {
 	return nil
 }
 
-func (mh *MessageHandler) publishMessage(ctx context.Context, channel *amqp.Channel, message string, targetQueue string) error {
-	queueConfig, ok := mh.queuesConfigs[targetQueue]
+// publishMessage publish a message in targetExchange with some routing key
+// Possible routing keys are: dataType.city.id or dataType.eof
+// + dataType: weather, trips, stations
+// + city: toronto, montreal, washington
+// + id: number > 0
+func (mh *MessageHandler) publishMessage(ctx context.Context, channel *amqp.Channel, message string, targetExchange string, routingKey string) error {
+	rabbitConfig, ok := mh.rabbitMQConfig[targetExchange]
 	if !ok {
-		return fmt.Errorf("invalid target queue %s", targetQueue)
+		return fmt.Errorf("invalid target exchange %s", targetExchange)
 	}
 
-	publishConfig := queueConfig.PublishingConfig
-	log.Infof("Publishing message in %s", queueConfig.Name)
+	publishConfig := rabbitConfig.PublishingConfig
+	log.Infof("Publishing message in exchange %s", publishConfig.Exchange)
 
 	return channel.PublishWithContext(ctx,
 		publishConfig.Exchange,
-		queueConfig.Name,
+		routingKey,
 		publishConfig.Mandatory,
-		false,
+		publishConfig.Immediate,
 		amqp.Publishing{
-			DeliveryMode: amqp.Persistent,
-			ContentType:  publishConfig.ContentType,
-			Body:         []byte(message),
+			ContentType: publishConfig.ContentType,
+			Body:        []byte(message),
 		},
 	)
+}
+
+func getRandomID() int {
+	/*// initialize the random number generator
+	rand.Seed(time.Now().UnixNano())
+
+	// generate a random number between 1 and 3
+	return rand.Intn(3) + 1*/
+	return 1
 }

@@ -19,7 +19,7 @@ type ServerConfig struct {
 	MaxAmountOfConnections int                               `yaml:"max_amount_of_connections"`
 	Protocol               string                            `yaml:"protocol"`
 	PacketLimit            int                               `yaml:"packet_limit"`
-	QueuesConfigs          map[string]communication.RabbitMQ `yaml:"queues"`
+	RabbitMQConfig         map[string]communication.RabbitMQ `yaml:"rabbit_mq"`
 }
 
 type Server struct {
@@ -43,7 +43,7 @@ func NewServer(config ServerConfig) *Server {
 	}
 }
 
-func (s *Server) DeclareQueues() error {
+func (s *Server) DeclareExchanges() error {
 	conn, err := amqp.Dial("amqp://guest:guest@rabbit:5672/")
 	if err != nil {
 		return fmt.Errorf("failed to connect to RabbitMQ: %s", err.Error())
@@ -56,20 +56,21 @@ func (s *Server) DeclareQueues() error {
 	}
 	defer ch.Close()
 
-	for _, queueConfig := range s.config.QueuesConfigs {
-		declareConfig := queueConfig.DeclarationConfig
-		_, err = ch.QueueDeclare(
-			queueConfig.Name,
-			declareConfig.Durable,
-			declareConfig.DeleteWhenUnused,
-			declareConfig.Exclusive,
-			declareConfig.NoWait,
+	for _, rabbitConfig := range s.config.RabbitMQConfig {
+		exchangeDeclareConfig := rabbitConfig.ExchangeDeclarationConfig
+		err = ch.ExchangeDeclare(
+			exchangeDeclareConfig.Name,
+			exchangeDeclareConfig.Type,
+			exchangeDeclareConfig.Durable,
+			exchangeDeclareConfig.AutoDeleted,
+			exchangeDeclareConfig.Internal,
+			exchangeDeclareConfig.NoWait,
 			nil,
 		)
 		if err != nil {
-			return fmt.Errorf("error declaring queue %s", queueConfig.Name)
+			return fmt.Errorf("error declaring exchange %s", exchangeDeclareConfig.Name)
 		}
-		log.Debugf("queue %s declared correctly", queueConfig.Name)
+		log.Debugf("exchange %s declared correctly", exchangeDeclareConfig.Name)
 	}
 	return nil
 
@@ -113,7 +114,7 @@ func (s *Server) Run() error {
 				AckMessage:     s.config.AckMessage,
 			},
 			&newSocket,
-			s.config.QueuesConfigs,
+			s.config.RabbitMQConfig,
 		)
 
 		go func() {
