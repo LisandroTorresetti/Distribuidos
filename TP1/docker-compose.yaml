@@ -24,14 +24,14 @@ services:
     depends_on:
       - server
 
-  broker1:
-    container_name: broker1
-    image: brokers:latest
+  worker1:
+    container_name: worker1
+    image: workers:latest
     entrypoint: ./main
     environment:
-      - BROKER_ID=1
+      - WORKER_ID=1
       - CITY=montreal
-      - BROKER_TYPE=weather-broker
+      - WORKER_TYPE=weather-worker
       - FINISH_PROCESSING_MESSAGE=weather-PONG
       - LOG_LEVEL=DEBUG
     networks:
@@ -40,14 +40,14 @@ services:
       - rabbit
       - server
 
-  broker2:
-    container_name: broker2
-    image: brokers:latest
+  worker2:
+    container_name: worker2
+    image: workers:latest
     entrypoint: ./main
     environment:
-      - BROKER_ID=2
+      - WORKER_ID=2
       - CITY=montreal
-      - BROKER_TYPE=weather-broker
+      - WORKER_TYPE=weather-broker
       - FINISH_PROCESSING_MESSAGE=weather-PONG
       - LOG_LEVEL=DEBUG
     networks:
