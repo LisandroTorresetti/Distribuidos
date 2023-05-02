@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"os"
+	"strconv"
 	"tp1/domain/communication"
 	"tp1/utils"
 )
 
-const configFilepath = "/weather/config/config.yaml"
+const configFilepath = "./brokers/weather/config/config.yaml"
 
 // weatherValidColumns contains the index of each field to analyze
 type weatherValidColumns struct {
@@ -16,11 +17,13 @@ type weatherValidColumns struct {
 	Rainfall int `yaml:"rainfall"`
 }
 type WeatherConfig struct {
-	RainfallThreshold       float64                             `yaml:"rainfall_threshold"`
-	ValidColumnsIndexes     weatherValidColumns                 `yaml:"valid_columns"`
-	InputQueues             map[string][]communication.RabbitMQ `yaml:"input_queues"`
-	OutputQueues            map[string][]communication.RabbitMQ `yaml:"output_queues"`
+	RainfallThreshold       float64                                      `yaml:"rainfall_threshold"`
+	ValidColumnsIndexes     weatherValidColumns                          `yaml:"valid_columns"`
+	InputQueues             map[string][]communication.RabbitMQ          `yaml:"input_queues"`
+	RabbitMQConfig          map[string]map[string]communication.RabbitMQ `yaml:"rabbit_mq"`
 	FinishProcessingMessage string
+	City                    string
+	ID                      int
 }
 
 func LoadConfig() (*WeatherConfig, error) {
@@ -35,6 +38,8 @@ func LoadConfig() (*WeatherConfig, error) {
 		return nil, fmt.Errorf("error parsing weather config file: %s", err)
 	}
 	weatherConfig.FinishProcessingMessage = os.Getenv("FINISH_PROCESSING_MESSAGE")
+	weatherConfig.City = os.Getenv("CITY")
+	weatherConfig.ID, _ = strconv.Atoi(os.Getenv("BROKER_ID"))
 
 	return &weatherConfig, nil
 }
