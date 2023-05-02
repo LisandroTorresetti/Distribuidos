@@ -9,7 +9,8 @@ services:
     networks:
       - bikers
     depends_on:
-      - rabbit
+      rabbit:
+        condition: service_healthy
 
   client:
     container_name: client
@@ -23,13 +24,31 @@ services:
     depends_on:
       - server
 
+  broker:
+    container_name: broker
+    image: brokers:latest
+    entrypoint: ./main
+    environment:
+      - LOG_LEVEL=DEBUG
+    networks:
+      - bikers
+    depends_on:
+      - rabbit
+      - server
+
   rabbit:
     container_name: rabbit
     image: rabbitmq
     ports:
       - '5672:5672'
+      - '15672:15672'
     networks:
       - bikers
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 30s
+      timeout: 30s
+      retries: 10
 
 networks:
   bikers:

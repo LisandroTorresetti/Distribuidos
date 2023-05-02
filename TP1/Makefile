@@ -4,6 +4,7 @@ PWD := $(shell pwd)
 build-images:
 	docker build -f ./server/Dockerfile -t "server:latest" .
 	docker build -f ./client/Dockerfile -t "client:latest" .
+	docker build -f ./brokers/Dockerfile -t "brokers:latest" .
 .PHONY: build-images
 
 mandale-mecha:
@@ -15,6 +16,7 @@ stop-app:
 .PHONY: stop-app
 
 delete-app: stop-app
+	echo "te estas portando mal seras castigado"
 	docker-compose -f docker-compose.yaml down
 .PHONY: delete-app
 
