@@ -5,7 +5,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"strconv"
-	"tp1/domain/communication"
+	"tp1/communication"
 	"tp1/utils"
 )
 
@@ -17,9 +17,9 @@ type weatherValidColumns struct {
 	Rainfall int `yaml:"rainfall"`
 }
 type WeatherConfig struct {
-	RainfallThreshold       float64                                      `yaml:"rainfall_threshold"`
-	ValidColumnsIndexes     weatherValidColumns                          `yaml:"valid_columns"`
-	RabbitMQConfig          map[string]map[string]communication.RabbitMQ `yaml:"rabbit_mq"`
+	RainfallThreshold       float64                                            `yaml:"rainfall_threshold"`
+	ValidColumnsIndexes     weatherValidColumns                                `yaml:"valid_columns"`
+	RabbitMQConfig          map[string]map[string]communication.RabbitMQConfig `yaml:"rabbit_mq"`
 	FinishProcessingMessage string
 	City                    string
 	ID                      int

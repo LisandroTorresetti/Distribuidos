@@ -75,7 +75,7 @@ func (r *RabbitMQ) DeclareExchanges(exchangesConfig []ExchangeDeclarationConfig)
 }
 
 // PublishMessageInQueue publish a message in a given queue
-func (r *RabbitMQ) PublishMessageInQueue(ctx context.Context, queueName string, message []byte) error {
+func (r *RabbitMQ) PublishMessageInQueue(ctx context.Context, queueName string, message []byte, contentType string) error {
 	return r.channel.PublishWithContext(ctx,
 		"",
 		queueName,
@@ -83,21 +83,21 @@ func (r *RabbitMQ) PublishMessageInQueue(ctx context.Context, queueName string, 
 		false,
 		amqp.Publishing{
 			DeliveryMode: amqp.Persistent,
-			ContentType:  "application/json",
+			ContentType:  contentType,
 			Body:         message,
 		},
 	)
 }
 
 // PublishMessageInExchange publish a message in a given exchange with a given routing key
-func (r *RabbitMQ) PublishMessageInExchange(ctx context.Context, exchange string, routingKey string, message []byte) error {
+func (r *RabbitMQ) PublishMessageInExchange(ctx context.Context, exchange string, routingKey string, message []byte, contentType string) error {
 	return r.channel.PublishWithContext(ctx,
 		exchange,
 		routingKey,
 		false,
 		false,
 		amqp.Publishing{
-			ContentType: "application/json",
+			ContentType: contentType,
 			Body:        message,
 		},
 	)
@@ -165,4 +165,19 @@ func (r *RabbitMQ) GetQueueConsumer(queueName string) (<-chan amqp.Delivery, err
 	}
 
 	return consumer, nil
+}
+
+// KillBadBunny close RabbitMQ's connection and channel
+func (r *RabbitMQ) KillBadBunny() error {
+	err := r.connection.Close()
+	if err != nil {
+		return fmt.Errorf("error closing RabbitMQ connection: %w", err)
+	}
+
+	err = r.channel.Close()
+	if err != nil {
+		return fmt.Errorf("error closing RabbitMQ channel: %w", err)
+	}
+
+	return nil
 }
