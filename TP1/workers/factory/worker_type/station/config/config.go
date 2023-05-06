@@ -5,7 +5,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"strconv"
-	"tp1/domain/communication"
+	"tp1/communication"
 	"tp1/utils"
 )
 
@@ -21,8 +21,8 @@ type stationValidColumns struct {
 }
 
 type StationConfig struct {
-	ValidColumnsIndexes     stationValidColumns                          `yaml:"valid_columns"`
-	RabbitMQConfig          map[string]map[string]communication.RabbitMQ `yaml:"rabbit_mq"`
+	ValidColumnsIndexes     stationValidColumns                                `yaml:"valid_columns"`
+	RabbitMQConfig          map[string]map[string]communication.RabbitMQConfig `yaml:"rabbit_mq"`
 	FinishProcessingMessage string
 	City                    string
 	ID                      int
