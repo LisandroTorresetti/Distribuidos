@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	amqp "github.com/rabbitmq/amqp091-go"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 	"time"
-	"tp1/domain/communication"
+	"tp1/communication"
 	"tp1/domain/entities/trip"
 	dataErrors "tp1/workers/factory/worker_type/errors"
 	"tp1/workers/factory/worker_type/trip/config"
@@ -25,12 +24,14 @@ const (
 )
 
 type TripWorker struct {
+	rabbitMQ  *communication.RabbitMQ
 	config    *config.TripConfig
 	delimiter string
 }
 
-func NewTripWorker(tripWorkerConfig *config.TripConfig) *TripWorker {
+func NewTripWorker(tripWorkerConfig *config.TripConfig, rabbitMQ *communication.RabbitMQ) *TripWorker {
 	return &TripWorker{
+		rabbitMQ:  rabbitMQ,
 		delimiter: ",",
 		config:    tripWorkerConfig,
 	}
@@ -59,108 +60,55 @@ func (tw *TripWorker) GetEOFString() string {
 	return tripStr + "-PONG"
 }
 
+// GetEOFMessageTuned returns an EOF message with the following structure: eof.trips.city.workerID
+// Possible values for city: washington, toronto, montreal
+func (tw *TripWorker) GetEOFMessageTuned() string {
+	return fmt.Sprintf("eof.%s.%s.%v", tripStr, tw.config.City, tw.GetID())
+}
+
 // DeclareQueues declares non-anonymous queues for Trip Worker
-func (tw *TripWorker) DeclareQueues(channel *amqp.Channel) error {
-	rabbitQueueConfig, ok := tw.config.RabbitMQConfig[tripStr][exchangeInput+tripStr]
-	if !ok {
-		return fmt.Errorf("[worker: %s][status: error] config with key %s does not exists", tripWorkerType, exchangeInput+tripStr)
+func (tw *TripWorker) DeclareQueues() error {
+	var queues []communication.QueueDeclarationConfig
+	for key, rabbitConfig := range tw.config.RabbitMQConfig[tripStr] {
+		if strings.Contains(key, "queue") {
+			queues = append(queues, rabbitConfig.QueueDeclarationConfig)
+		}
 	}
 
-	queueName := rabbitQueueConfig.QueueDeclarationConfig.Name
-	_, err := channel.QueueDeclare(
-		queueName,
-		rabbitQueueConfig.QueueDeclarationConfig.Durable,
-		rabbitQueueConfig.QueueDeclarationConfig.DeleteWhenUnused,
-		rabbitQueueConfig.QueueDeclarationConfig.Exclusive,
-		rabbitQueueConfig.QueueDeclarationConfig.NoWait,
-		nil,
-	)
-
+	err := tw.rabbitMQ.DeclareNonAnonymousQueues(queues)
 	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error] error declaring queue %s: %s", tripWorkerType, tw.GetID(), queueName, err.Error())
 		return err
 	}
 
-	log.Infof("[worker: %s][workerID: %v][status: OK] queue %s declared correctly!", tripWorkerType, tw.GetID(), queueName)
-
+	log.Infof("[worker: %s][workerID: %v][status: OK] queues declared correctly!", tripStr, tw.GetID())
 	return nil
+
 }
 
-func (tw *TripWorker) DeclareExchanges(channel *amqp.Channel) error {
+func (tw *TripWorker) DeclareExchanges() error {
+	var exchanges []communication.ExchangeDeclarationConfig
 	for key, rabbitConfig := range tw.config.RabbitMQConfig[tripStr] {
 		if strings.Contains(key, "exchange") {
-			exchangeName := rabbitConfig.ExchangeDeclarationConfig.Name
-			err := channel.ExchangeDeclare(
-				exchangeName,
-				rabbitConfig.ExchangeDeclarationConfig.Type,
-				rabbitConfig.ExchangeDeclarationConfig.Durable,
-				rabbitConfig.ExchangeDeclarationConfig.AutoDeleted,
-				rabbitConfig.ExchangeDeclarationConfig.Internal,
-				rabbitConfig.ExchangeDeclarationConfig.NoWait,
-				nil,
-			)
-			if err != nil {
-				log.Errorf("[worker: %s][workerID: %v][status: error] error declaring exchange %s: %s", tripWorkerType, tw.GetID(), exchangeName, err.Error())
-				return err
-			}
+			exchanges = append(exchanges, rabbitConfig.ExchangeDeclarationConfig)
 		}
 	}
-	log.Infof("[worker: %s][workerID: %v][status: OK] exchanges declared correctly!", tripWorkerType, tw.GetID())
+
+	err := tw.rabbitMQ.DeclareExchanges(exchanges)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("[worker: %s][workerID: %v][status: OK] exchanges declared correctly!", tripStr, tw.GetID())
 	return nil
 }
 
 // ProcessInputMessages process all messages that Trip Worker receives
-func (tw *TripWorker) ProcessInputMessages(channel *amqp.Channel) error {
-	configKey := exchangeInput + tripStr
-	rabbitMQ, ok := tw.config.RabbitMQConfig[tripStr][configKey]
-	if !ok {
-		return fmt.Errorf("[worker: %s][]workerID: %v[status: error] cannot find RabbitMQ config for key %s", tripWorkerType, tw.GetID(), configKey)
-	}
-
-	anonymousQueue, err := channel.QueueDeclare(
-		"",
-		rabbitMQ.QueueDeclarationConfig.Durable,
-		rabbitMQ.QueueDeclarationConfig.DeleteWhenUnused,
-		rabbitMQ.QueueDeclarationConfig.Exclusive,
-		rabbitMQ.QueueDeclarationConfig.NoWait,
-		nil,
-	)
-
-	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error] error declaring anonymus queue: %s", tripWorkerType, tw.GetID(), err.Error())
-		return err
-	}
-
-	// Binding
+func (tw *TripWorker) ProcessInputMessages() error {
+	exchangeName := exchangeInput + tripStr
 	routingKeys := tw.GetRoutingKeys()
 
-	for _, routingKey := range routingKeys {
-		log.Debugf("LICHA: routing key %s", routingKey)
-		err = channel.QueueBind(
-			anonymousQueue.Name,
-			routingKey,
-			rabbitMQ.ExchangeDeclarationConfig.Name,
-			rabbitMQ.ExchangeDeclarationConfig.NoWait,
-			nil,
-		)
-		if err != nil {
-			log.Errorf("[worker: %s][workerID: %v][status: error] error binding routing key %s: %s", tripWorkerType, tw.GetID(), routingKey, err.Error())
-			return err
-		}
-	}
-
-	messages, err := channel.Consume(
-		anonymousQueue.Name,
-		"",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-
+	consumer, err := tw.rabbitMQ.GetExchangeConsumer(exchangeName, routingKeys)
 	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error] error getting consumer: %s", tripWorkerType, tw.GetID(), err.Error())
 		return err
 	}
 
@@ -170,75 +118,84 @@ func (tw *TripWorker) ProcessInputMessages(channel *amqp.Channel) error {
 	log.Debugf("[worker: %s][workerID: %v][status: OK]start consuming messages", tripWorkerType, tw.GetID())
 	eofString := tw.GetEOFString()
 
-	for d := range messages {
-		sms := string(d.Body)
-		if sms == eofString {
+	for message := range consumer {
+		msg := string(message.Body)
+		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received", tripWorkerType, tw.GetID())
-			// WARNING: from now, the EOF message will have the following structure eof.trips.city.id. And will be used as the routing key too
-			newEOFMessage := tw.getEOFMessageTuned()
-			err = tw.publishInAllExchanges(ctx, channel, []byte(newEOFMessage), newEOFMessage)
+			targetQueue := fmt.Sprintf("%s.eof.manager", tripStr) // ToDo: create a better string if its necessary
+			eofMessage := []byte(tw.GetEOFMessageTuned())
+			err = tw.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, eofMessage, "text/plain")
+
 			if err != nil {
-				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing message: %s", tripWorkerType, tw.GetID(), err.Error())
+				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing EOF message: %s", tripWorkerType, tw.GetID(), err.Error())
 				return err
 			}
-
 			break
 		}
 
-		log.Debugf("[worker: %s][workerID: %v][status: OK][method: ProcessInputMessages] received message %s", tripWorkerType, tw.GetID(), sms)
-		smsSplit := strings.Split(sms, "|") // We received a batch of data here
-		for _, smsData := range smsSplit {
-			if strings.Contains(smsData, "PING") {
-				log.Debug("bypassing PING")
-				continue
-			}
-
-			err = tw.processData(ctx, channel, smsData)
-			if err != nil {
-				return err
-			}
+		log.Debugf("[worker: %s][workerID: %v][status: OK][method: ProcessInputMessages] received message %s", tripWorkerType, tw.GetID(), msg)
+		err = tw.processData(ctx, msg)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (tw *TripWorker) GetRabbitConfig(workerType string, configKey string) (communication.RabbitMQ, bool) {
-	//TODO implement me
-	panic("implement me")
+func (tw *TripWorker) Kill() error {
+	return tw.rabbitMQ.KillBadBunny()
 }
 
-func (tw *TripWorker) ProcessData(ctx context.Context, channel *amqp.Channel, data string) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (tw *TripWorker) processData(ctx context.Context, channel *amqp.Channel, data string) error {
-	log.Infof("[worker: %s][workerID: %v][status: OK] Processing WEATHER data: %s", tripWorkerType, tw.GetID(), data)
-	tripData, err := tw.getTripData(data)
-	if err != nil {
-		if errors.Is(err, dataErrors.ErrInvalidWeatherData) {
-			return nil
+// processData data is a string with the following format:
+// trips,city,data1_1,data1_2,...,data1_N|trips,city,data2_1,data2_2...,data2_N|PING
+// Only valid data from the received batch is sent to the next stage
+func (tw *TripWorker) processData(ctx context.Context, dataChunk string) error {
+	dataSplit := strings.Split(dataChunk, "|")
+	var dataToSend []*trip.TripData
+	for _, data := range dataSplit {
+		if strings.Contains(data, "PING") {
+			log.Debug("bypassing PING")
+			continue
 		}
+
+		tripData, err := tw.getTripData(data)
+		if err != nil {
+			if errors.Is(err, dataErrors.ErrInvalidWeatherData) {
+				continue
+			}
+			return err
+		}
+
+		if tw.isValid(tripData) {
+			tripData.City = tw.config.City
+			tripData.Type = tripStr
+			dataToSend = append(dataToSend, tripData)
+		}
+	}
+
+	if len(dataToSend) <= 0 {
+		return nil
+	}
+
+	dataAsBytes, err := json.Marshal(dataToSend)
+	if err != nil {
+		log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshaling data: %s", tripWorkerType, tw.GetID(), err.Error())
 		return err
 	}
 
-	if tw.isValid(tripData) {
-		log.Infof("[worker: %s][workerID: %v][status: OK][method: processData]: valid weather data %+v", tripWorkerType, tw.GetID(), tripData)
-		tripData.City = tw.config.City
-		tripData.Type = tripStr
-		dataAsBytes, err := json.Marshal(tripData)
-		if err != nil {
-			log.Errorf("[worker: %s][workerID: %v][status: error][method: publishMessage] error marshaling data: %s", tripWorkerType, tw.GetID(), err.Error())
-			return err
-		}
+	//targetQueues := fmt.Sprintf("%s.%s.join", tripStr, tw.config.City) // ToDo: we need something when we have to publish in multiple queues, maybe an array of queue names
+	var targetQueues []string // Fixme: add values to this slice
+	for _, targetQueue := range targetQueues {
+		err = tw.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, dataAsBytes, "application/json")
 
-		err = tw.publishInAllExchanges(ctx, channel, dataAsBytes, "")
+		// Fixme: we have to send this message to:
+		// Rain Joiner, Year Filter, DuplicateJoiner
+
 		if err != nil {
-			log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing message: %s", tripWorkerType, tw.GetID(), err.Error())
+			log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing message in join queue: %s", tripWorkerType, tw.GetID(), err.Error())
 			return err
 		}
-		return nil
 	}
 
 	return nil
@@ -324,70 +281,6 @@ func (tw *TripWorker) isValid(tripData *trip.TripData) bool {
 	}
 
 	return validData
-}
-
-// publishInAllExchanges has to publish in "rain_accumulator_topic", "year_filter_topic" and "montreal_filter_topic"
-// ToDo: maybe we can add more logic here, eg: before publishing to year_filter_topic we can check if the year is between 2016 and 2017
-func (tw *TripWorker) publishInAllExchanges(ctx context.Context, channel *amqp.Channel, data []byte, routingKey string) error {
-	for exchangeName, rabbitConfig := range tw.config.RabbitMQConfig[tripStr] {
-		auxRoutingKey := routingKey
-		if strings.Contains(exchangeName, exchangeOutput) {
-			if auxRoutingKey == "" {
-				auxRoutingKey = tw.getRoutingKeyForExchange(exchangeName)
-			}
-			err := tw.publishMessage(ctx, channel, data, routingKey, rabbitConfig)
-			if err != nil {
-				log.Errorf("[worker: %s][workerID: %v][status: error][method: publishInAllExchanges] error publishing message in exchange %s: %s", tripWorkerType, tw.GetID(), exchangeName, err.Error())
-				return err
-			}
-			log.Infof("[worker: %s][workerID: %v][status: OK][method: publishInAllExchanges] publish message correctly in exchange %s", tripWorkerType, tw.GetID(), exchangeName)
-		}
-	}
-
-	log.Infof("[worker: %s][workerID: %v][status: OK][method: publishInAllExchanges] publish message correctly in all exchanges!", tripWorkerType, tw.GetID())
-	return nil
-}
-
-// ToDo: maybe we can add more logic here, eg: before publishing to year_filter_topic we can check if the year is between 2016 and 2017
-func (tw *TripWorker) publishMessage(ctx context.Context, channel *amqp.Channel, data []byte, routingKey string, rabbitMQConfig communication.RabbitMQ) error {
-	publishConfig := rabbitMQConfig.PublishingConfig
-	log.Infof("[worker: %s][workerID: %v][status: OK][method: publishMessage]Publishing message in exchange %s", tripWorkerType, tw.GetID(), publishConfig.Exchange)
-
-	return channel.PublishWithContext(ctx,
-		publishConfig.Exchange,
-		routingKey,
-		publishConfig.Mandatory,
-		publishConfig.Immediate,
-		amqp.Publishing{
-			ContentType: publishConfig.ContentType,
-			Body:        data,
-		},
-	)
-}
-
-// getEOFMessageTuned returns an EOF message with the following structure: eof.trips.city.workerID
-// Possible values for city: washington, toronto, montreal
-func (tw *TripWorker) getEOFMessageTuned() string {
-	return fmt.Sprintf("eof.%s.%s.%v", tripStr, tw.config.City, tw.GetID())
-}
-
-// getRoutingKeyForExchange returns the routing key for a given exchange.
-// Outputs:
-func (tw *TripWorker) getRoutingKeyForExchange(exchangeName string) string {
-	randomID := getRandomID()
-	if exchangeName == "exchange_output_trips_year_filter" {
-		return fmt.Sprintf("yearfilter.%s.%v", tw.config.City, randomID) // yearfilter.city.id
-	}
-
-	if exchangeName == "exchange_output_trips_rain" {
-		return fmt.Sprintf("rain.%s.%v", tw.config.City, randomID) // rain.city.id
-	}
-
-	if exchangeName == "exchange_output_trips_montreal_filter" {
-		return fmt.Sprintf("montrealfilter.%s.%v", tw.config.City, randomID) // montrealfilter.id
-	}
-
-	panic(fmt.Sprintf("[worker: %s][workerID: %v] invalid exchange name %s", tripWorkerType, tw.GetID(), exchangeName))
 }
 
 func getRandomID() int {
