@@ -19,7 +19,6 @@ type weatherValidColumns struct {
 type WeatherConfig struct {
 	RainfallThreshold       float64                                      `yaml:"rainfall_threshold"`
 	ValidColumnsIndexes     weatherValidColumns                          `yaml:"valid_columns"`
-	InputQueues             map[string][]communication.RabbitMQ          `yaml:"input_queues"`
 	RabbitMQConfig          map[string]map[string]communication.RabbitMQ `yaml:"rabbit_mq"`
 	FinishProcessingMessage string
 	City                    string

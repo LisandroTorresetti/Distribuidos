@@ -54,8 +54,8 @@ func (wb *WeatherBroker) DeclareQueues() error {
 
 	defer ch.Close()
 
-	aux, ok := wb.config.RabbitMQConfig[weatherStr]
-	rabbitQueueConfig, ok := aux["exchange_input_weather"]
+	rabbitQueueConfig, ok := wb.config.RabbitMQConfig[weatherStr][exchangeInput+weatherStr]
+	//rabbitQueueConfig, ok := aux["exchange_input_weather"]
 	if !ok {
 		log.Errorf("[broker: %s][status: error] config does not exists: %s", brokerType, err.Error())
 		return err
@@ -293,9 +293,12 @@ func (wb *WeatherBroker) publishMessage(ctx context.Context, channel *amqp.Chann
 		return err
 	}
 
+	// Generic idea for routing key: city.accumulatorName.brokerID
+	routingKey := fmt.Sprintf("%s.rain-accumulator.%v", wb.config.City, wb.config.ID)
+
 	return channel.PublishWithContext(ctx,
 		publishConfig.Exchange,
-		"rain_accumulator.1", // ToDo: replace with a valid string. Licha
+		routingKey,
 		publishConfig.Mandatory,
 		publishConfig.Immediate,
 		amqp.Publishing{

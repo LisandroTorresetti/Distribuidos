@@ -5,12 +5,15 @@ import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"tp1/domain/communication"
+	"tp1/workers/factory/worker_type/trip"
+	tripConfig "tp1/workers/factory/worker_type/trip/config"
 	"tp1/workers/factory/worker_type/weather"
-	"tp1/workers/factory/worker_type/weather/config"
+	weatherConfig "tp1/workers/factory/worker_type/weather/config"
 )
 
 const (
 	weatherWorker = "weather-worker"
+	tripsWorker   = "trips-worker"
 )
 
 type IWorker interface {
@@ -29,11 +32,20 @@ type IWorker interface {
 // Possible worker types are: weather-worker, trips-worker, stations-worker
 func NewWorker(workerType string) (IWorker, error) {
 	if workerType == weatherWorker {
-		weatherConfig, err := config.LoadConfig()
+		cfg, err := weatherConfig.LoadConfig()
 		if err != nil {
 			return nil, fmt.Errorf("[method: InitWorker][status: error] error getting Weather Worker config: %w", err)
 		}
-		return weather.NewWeatherWorker(weatherConfig), nil
+		return weather.NewWeatherWorker(cfg), nil
 	}
+
+	if workerType == tripsWorker {
+		cfg, err := tripConfig.LoadConfig()
+		if err != nil {
+			return nil, fmt.Errorf("[method: InitWorker][status: error] error getting Weather Worker config: %w", err)
+		}
+		return trip.NewTripWorker(cfg), nil
+	}
+
 	return nil, fmt.Errorf("[method: InitWorker][status: error] Invalid worker type %s", workerType)
 }

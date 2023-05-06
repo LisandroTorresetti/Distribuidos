@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var dataTypes = []string{"weather"}
+var dataTypes = []string{"weather", "trips"} // Debugging data to sent
 
 func LoadClientConfig() (ClientConfig, error) {
 	configFile, err := utils.GetConfigFile("./config/config.yaml")

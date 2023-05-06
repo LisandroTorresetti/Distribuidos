@@ -1,0 +1,76 @@
+valid_columns:
+  start_date: 2
+  start_station_code: 3
+  end_date: 4
+  end_station_code: 5
+  duration: 6
+  year_id: 7
+
+rabbit_mq:
+  trips:
+    exchange_input_trips: # messages from server to trip-worker
+      exchange_declaration_config:
+        name: "trips_topic"
+        type: "topic"
+        durable: true
+        auto_deleted: false
+        internal: false
+        no_wait: false
+
+      consumption_config:
+        exchange: "trips_topic"
+        mandatory: false
+        immediate: false
+        content_type: "text/plain"
+
+      queue_declaration_config: # Anonymous queue for consuming messages
+        durable: true
+        delete_when_unused: false
+        exclusive: true
+        no_wait: false
+
+    exchange_output_trips_rain: # messages from trip-worker to rain accumulator
+      exchange_declaration_config:
+        name: "rain_accumulator_topic"
+        type: "topic"
+        durable: true
+        auto_deleted: false
+        internal: false
+        no_wait: false
+
+      publishing_config:
+        exchange: "rain_accumulator_topic"
+        mandatory: false
+        immediate: false
+        content_type: "application/json"
+
+    exchange_output_trips_year_filter: # messages from trip-worker to year filter
+      exchange_declaration_config:
+        name: "year_filter_topic"
+        type: "topic"
+        durable: true
+        auto_deleted: false
+        internal: false
+        no_wait: false
+
+      publishing_config:
+        exchange: "year_filter_topic"
+        mandatory: false
+        immediate: false
+        content_type: "application/json"
+
+    exchange_output_trips_montreal_filter: # messages from trip-worker to montreal filter
+      exchange_declaration_config:
+        name: "montreal_filter_topic"
+        type: "topic"
+        durable: true
+        auto_deleted: false
+        internal: false
+        no_wait: false
+
+      publishing_config:
+        exchange: "montreal_filter_topic"
+        mandatory: false
+        immediate: false
+        content_type: "application/json"
+

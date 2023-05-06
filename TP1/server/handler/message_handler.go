@@ -19,13 +19,15 @@ type MessageHandlerConfig struct {
 }
 
 type MessageHandler struct {
+	ID             string
 	config         MessageHandlerConfig
 	handlerSocket  *socket.Socket
 	rabbitMQConfig map[string]communication.RabbitMQ
 }
 
-func NewMessageHandler(config MessageHandlerConfig, handlerSocket *socket.Socket, queuesConfigs map[string]communication.RabbitMQ) *MessageHandler {
+func NewMessageHandler(config MessageHandlerConfig, handlerSocket *socket.Socket, queuesConfigs map[string]communication.RabbitMQ, id string) *MessageHandler {
 	return &MessageHandler{
+		ID:             id,
 		config:         config,
 		handlerSocket:  handlerSocket,
 		rabbitMQConfig: queuesConfigs,
@@ -127,7 +129,7 @@ func (mh *MessageHandler) publishMessage(ctx context.Context, channel *amqp.Chan
 	}
 
 	publishConfig := rabbitConfig.PublishingConfig
-	log.Infof("Publishing message in exchange %s", publishConfig.Exchange)
+	log.Infof("[smsHandler: %s]Publishing message in exchange %s", publishConfig.Exchange, mh.ID)
 
 	return channel.PublishWithContext(ctx,
 		publishConfig.Exchange,

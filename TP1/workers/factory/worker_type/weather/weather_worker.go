@@ -50,7 +50,7 @@ func (ww *WeatherWorker) GetType() string {
 func (ww *WeatherWorker) GetRoutingKeys() []string {
 	return []string{
 		fmt.Sprintf("%s.%s.%v", weatherStr, ww.config.City, ww.GetID()), // input routing key: weather.city.workerID
-		fmt.Sprintf("%s.eof", weatherStr),
+		fmt.Sprintf("%s.eof", weatherStr),                               //weather.eof
 	}
 }
 
@@ -258,6 +258,8 @@ func (ww *WeatherWorker) getWeatherData(data string) (*weather.WeatherData, erro
 	}, nil
 }
 
+// isValid returns true if the following conditions are met:
+// + Rainfall is greater than 30mm
 func (ww *WeatherWorker) isValid(weatherData *weather.WeatherData) bool {
 	return weatherData.Rainfall > ww.config.RainfallThreshold
 }

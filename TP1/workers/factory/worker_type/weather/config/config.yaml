@@ -7,7 +7,7 @@ valid_columns:
 
 rabbit_mq:
   weather:
-    exchange_input_weather: # messages from server to X-broker
+    exchange_input_weather: # messages from server to X-worker
       exchange_declaration_config:
         name: "weather_topic"
         type: "topic"
@@ -28,7 +28,7 @@ rabbit_mq:
         exclusive: true
         no_wait: false
 
-    exchange_output_weather: # messages from X-broker to rain accumulator
+    exchange_output_weather: # messages from X-worker to rain accumulator
       exchange_declaration_config:
         name: "rain_accumulator_topic"
         type: "topic"
@@ -43,4 +43,3 @@ rabbit_mq:
         immediate: false
         content_type: "application/json"
 
-# ToDo: add EOF Manager queue and other data queues

@@ -45,10 +45,10 @@ services:
     image: workers:latest
     entrypoint: ./main
     environment:
-      - WORKER_ID=2
+      - WORKER_ID=1
       - CITY=montreal
-      - WORKER_TYPE=weather-broker
-      - FINISH_PROCESSING_MESSAGE=weather-PONG
+      - WORKER_TYPE=trips-worker
+      - FINISH_PROCESSING_MESSAGE=trips-PONG
       - LOG_LEVEL=DEBUG
     networks:
       - bikers

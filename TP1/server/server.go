@@ -4,6 +4,7 @@ import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
 	log "github.com/sirupsen/logrus"
+	"net"
 	"tp1/domain/communication"
 	"tp1/server/handler"
 	"tp1/socket"
@@ -94,6 +95,9 @@ func (s *Server) Run() error {
 		}
 	}(s.serverSocket)
 
+	names := []string{"LICHA", "TADEO"}
+	counter := 0
+
 	for {
 		log.Debug("[server] waiting for new connections")
 		// Accept new connection
@@ -104,24 +108,27 @@ func (s *Server) Run() error {
 		}
 		log.Debug("[server] connection accepted!")
 
-		newSocket := *s.serverSocket
-		newSocket.SetConnection(conn)
+		/*newSocket := *s.serverSocket
+		newSocket.SetConnection(conn)*/
 
-		messageHandler := handler.NewMessageHandler(
-			handler.MessageHandlerConfig{
-				EndBatchMarker: s.config.EndBatchMarker,
-				FinMessages:    s.config.FinMessages,
-				AckMessage:     s.config.AckMessage,
-			},
-			&newSocket,
-			s.config.RabbitMQConfig,
-		)
-
-		go func() {
+		go func(conn *net.Conn) {
+			newSocket := *s.serverSocket
+			newSocket.SetConnection(*conn)
+			messageHandler := handler.NewMessageHandler(
+				handler.MessageHandlerConfig{
+					EndBatchMarker: s.config.EndBatchMarker,
+					FinMessages:    s.config.FinMessages,
+					AckMessage:     s.config.AckMessage,
+				},
+				&newSocket,
+				s.config.RabbitMQConfig,
+				names[counter],
+			)
+			counter += 1
 			err := messageHandler.ProcessData()
 			if err != nil {
 				log.Errorf("error processing data: %s", err.Error())
 			}
-		}()
+		}(&conn)
 	}
 }

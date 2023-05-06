@@ -27,4 +27,34 @@ rabbit_mq:
         immediate: false
         content_type: "text/plain"
 
+    trips:
+      exchange_declaration_config:
+        name: "trips_topic"
+        type: "topic"
+        durable: true
+        auto_deleted: false
+        internal: false
+        no_wait: false
+
+      publishing_config:
+        exchange: "weather_topic"
+        mandatory: false
+        immediate: false
+        content_type: "text/plain"
+
+    stations:
+      exchange_declaration_config:
+        name: "stations_topic"
+        type: "topic"
+        durable: true
+        auto_deleted: false
+        internal: false
+        no_wait: false
+
+      publishing_config:
+        exchange: "stations_topic"
+        mandatory: false
+        immediate: false
+        content_type: "text/plain"
+
 # ToDo: add exchanges for other data types: stations and trips

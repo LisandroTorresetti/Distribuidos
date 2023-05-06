@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	cities       = []string{"montreal"}
+	cities       = []string{"montreal"} // Debugging cities to sent
 	errorMessage = "error sending %s data from %s: %s"
 )
 
@@ -97,7 +97,7 @@ func (c *Client) SendWeatherData() error {
 func (c *Client) SendStationsData() error {
 	for _, city := range cities {
 		stationsFilepath := c.getFilePath(city, stationsFile)
-		err := c.sendDataFromFile(stationsFilepath, city, stationsFilepath)
+		err := c.sendDataFromFile(stationsFilepath, city, stationsFile)
 		if err != nil {
 			log.Error(fmt.Sprintf(errorMessage, stationsFile, city, err.Error()))
 			return err
@@ -116,7 +116,7 @@ func (c *Client) SendStationsData() error {
 func (c *Client) SendTripsData() error {
 	for _, city := range cities {
 		tripsFilepath := c.getFilePath(city, tripsFile)
-		err := c.sendDataFromFile(tripsFilepath, city, tripsFilepath)
+		err := c.sendDataFromFile(tripsFilepath, city, tripsFile)
 		if err != nil {
 			log.Error(fmt.Sprintf(errorMessage, tripsFile, city, err.Error()))
 			return err
