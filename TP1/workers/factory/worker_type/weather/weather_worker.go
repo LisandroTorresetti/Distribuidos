@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	amqp "github.com/rabbitmq/amqp091-go"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 	"time"
-	"tp1/domain/communication"
+	"tp1/communication"
 	"tp1/domain/entities/weather"
 	dataErrors "tp1/workers/factory/worker_type/errors"
 	"tp1/workers/factory/worker_type/weather/config"
@@ -25,13 +24,15 @@ const (
 )
 
 type WeatherWorker struct {
+	rabbitMQ  *communication.RabbitMQ
 	config    *config.WeatherConfig
 	delimiter string
 }
 
-func NewWeatherWorker(weatherBrokerConfig *config.WeatherConfig) *WeatherWorker {
+func NewWeatherWorker(weatherBrokerConfig *config.WeatherConfig, rabbitMQ *communication.RabbitMQ) *WeatherWorker {
 	return &WeatherWorker{
 		delimiter: ",",
+		rabbitMQ:  rabbitMQ,
 		config:    weatherBrokerConfig,
 	}
 }
@@ -59,107 +60,57 @@ func (ww *WeatherWorker) GetEOFString() string {
 	return weatherStr + "-PONG"
 }
 
+// GetEOFMessageTuned returns an EOF message with the following structure: eof.weather.city.workerID
+// Possible values for city: washington, toronto, montreal
+func (ww *WeatherWorker) GetEOFMessageTuned() string {
+	return fmt.Sprintf("eof.%s.%s.%v", weatherStr, ww.config.City, ww.GetID())
+}
+
 // DeclareQueues declares non-anonymous queues for Weather Worker
-func (ww *WeatherWorker) DeclareQueues(channel *amqp.Channel) error {
-	rabbitQueueConfig, ok := ww.config.RabbitMQConfig[weatherStr][exchangeInput+weatherStr]
-	if !ok {
-		return fmt.Errorf("[worker: %s][status: error] config with key %s does not exists", weatherWorkerType, exchangeInput+weatherStr)
+// Queues: EOF queue
+func (ww *WeatherWorker) DeclareQueues() error {
+	var queues []communication.QueueDeclarationConfig
+	for key, rabbitConfig := range ww.config.RabbitMQConfig[weatherStr] {
+		if strings.Contains(key, "queue") {
+			queues = append(queues, rabbitConfig.QueueDeclarationConfig)
+		}
 	}
 
-	queueName := rabbitQueueConfig.QueueDeclarationConfig.Name
-	_, err := channel.QueueDeclare(
-		queueName,
-		rabbitQueueConfig.QueueDeclarationConfig.Durable,
-		rabbitQueueConfig.QueueDeclarationConfig.DeleteWhenUnused,
-		rabbitQueueConfig.QueueDeclarationConfig.Exclusive,
-		rabbitQueueConfig.QueueDeclarationConfig.NoWait,
-		nil,
-	)
-
+	err := ww.rabbitMQ.DeclareNonAnonymousQueues(queues)
 	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error] error declaring queue %s: %s", weatherWorkerType, ww.GetID(), queueName, err.Error())
 		return err
 	}
 
-	log.Infof("[worker: %s][workerID: %v][status: OK] queue %s declared correctly!", weatherWorkerType, ww.GetID(), queueName)
-
+	log.Infof("[worker: %s][workerID: %v][status: OK] queues declared correctly!", weatherWorkerType, ww.GetID())
 	return nil
 }
 
-func (ww *WeatherWorker) DeclareExchanges(channel *amqp.Channel) error {
+// DeclareExchanges declares exchanges for Weather Worker
+// Exchanges: weather_topic, rain_accumulator_topic
+func (ww *WeatherWorker) DeclareExchanges() error {
+	var exchanges []communication.ExchangeDeclarationConfig
 	for key, rabbitConfig := range ww.config.RabbitMQConfig[weatherStr] {
 		if strings.Contains(key, "exchange") {
-			exchangeName := rabbitConfig.ExchangeDeclarationConfig.Name
-			err := channel.ExchangeDeclare(
-				exchangeName,
-				rabbitConfig.ExchangeDeclarationConfig.Type,
-				rabbitConfig.ExchangeDeclarationConfig.Durable,
-				rabbitConfig.ExchangeDeclarationConfig.AutoDeleted,
-				rabbitConfig.ExchangeDeclarationConfig.Internal,
-				rabbitConfig.ExchangeDeclarationConfig.NoWait,
-				nil,
-			)
-			if err != nil {
-				log.Errorf("[worker: %s][workerID: %v][status: error] error declaring exchange %s: %s", weatherWorkerType, ww.GetID(), exchangeName, err.Error())
-				return err
-			}
+			exchanges = append(exchanges, rabbitConfig.ExchangeDeclarationConfig)
 		}
 	}
-	log.Errorf("[worker: %s][workerID: %v][status: error] exchanges declared correctly!", weatherWorkerType, ww.GetID())
+
+	err := ww.rabbitMQ.DeclareExchanges(exchanges)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("[worker: %s][workerID: %v][status: OK] exchanges declared correctly!", weatherWorkerType, ww.GetID())
 	return nil
 }
 
 // ProcessInputMessages process all messages that Weather Worker receives
-func (ww *WeatherWorker) ProcessInputMessages(channel *amqp.Channel) error {
-	configKey := exchangeInput + weatherStr
-	rabbitMQ, ok := ww.config.RabbitMQConfig[weatherStr][configKey]
-	if !ok {
-		return fmt.Errorf("[worker: %s][]workerID: %v[status: error] cannot find RabbitMQ config for key %s", weatherWorkerType, ww.GetID(), configKey)
-	}
-
-	anonymousQueue, err := channel.QueueDeclare(
-		"",
-		rabbitMQ.QueueDeclarationConfig.Durable,
-		rabbitMQ.QueueDeclarationConfig.DeleteWhenUnused,
-		rabbitMQ.QueueDeclarationConfig.Exclusive,
-		rabbitMQ.QueueDeclarationConfig.NoWait,
-		nil,
-	)
-
-	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error] error declaring anonymus queue: %s", weatherWorkerType, ww.GetID(), err.Error())
-		return err
-	}
-
-	// Binding
+func (ww *WeatherWorker) ProcessInputMessages() error {
+	exchangeName := exchangeInput + weatherStr
 	routingKeys := ww.GetRoutingKeys()
 
-	for _, routingKey := range routingKeys {
-		err = channel.QueueBind(
-			anonymousQueue.Name,
-			routingKey,
-			rabbitMQ.ExchangeDeclarationConfig.Name,
-			rabbitMQ.ExchangeDeclarationConfig.NoWait,
-			nil,
-		)
-		if err != nil {
-			log.Errorf("[worker: %s][workerID: %v][status: error] error binding routing key %s: %s", weatherWorkerType, ww.GetID(), routingKey, err.Error())
-			return err
-		}
-	}
-
-	messages, err := channel.Consume(
-		anonymousQueue.Name,
-		"",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-
+	consumer, err := ww.rabbitMQ.GetExchangeConsumer(exchangeName, routingKeys)
 	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error] error getting consumer: %s", weatherWorkerType, ww.GetID(), err.Error())
 		return err
 	}
 
@@ -169,70 +120,79 @@ func (ww *WeatherWorker) ProcessInputMessages(channel *amqp.Channel) error {
 	log.Debugf("[worker: %s][workerID: %v][status: OK]start consuming messages", weatherWorkerType, ww.GetID())
 	eofString := ww.GetEOFString()
 
-	for d := range messages {
-		sms := string(d.Body)
-		if sms == eofString {
+	for message := range consumer {
+		msg := string(message.Body)
+		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received", weatherWorkerType, ww.GetID())
+			targetQueue := fmt.Sprintf("%s.eof.manager", weatherStr) // ToDo: create a better string if its necessary
+			eofMessage := []byte(ww.GetEOFMessageTuned())
+			err = ww.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, eofMessage, "text/plain")
+
+			if err != nil {
+				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing EOF message: %s", weatherWorkerType, ww.GetID(), err.Error())
+				return err
+			}
 			break
 		}
 
-		log.Debugf("[worker: %s][workerID: %v][status: OK][method: ProcessInputMessages] received message %s", weatherWorkerType, ww.GetID(), sms)
-		smsSplit := strings.Split(sms, "|") // We received a batch of data here
-		for _, smsData := range smsSplit {
-			if strings.Contains(smsData, "PING") {
-				log.Debug("bypassing PING")
-				continue
-			}
-
-			err = ww.processData(ctx, channel, smsData)
-			if err != nil {
-				return err
-			}
+		log.Debugf("[worker: %s][workerID: %v][status: OK][method: ProcessInputMessages] received message %s", weatherWorkerType, ww.GetID(), msg)
+		err = ww.processData(ctx, msg)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (ww *WeatherWorker) GetRabbitConfig(workerType string, configKey string) (communication.RabbitMQ, bool) {
-	//TODO implement me
-	panic("implement me")
+func (ww *WeatherWorker) Kill() error {
+	return ww.rabbitMQ.KillBadBunny()
 }
 
-func (ww *WeatherWorker) ProcessData(ctx context.Context, channel *amqp.Channel, data string) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (ww *WeatherWorker) processData(ctx context.Context, channel *amqp.Channel, data string) error {
-	log.Infof("[worker: %s][workerID: %v][status: OK] Processing WEATHER data: %s", weatherWorkerType, ww.GetID(), data)
-	weatherData, err := ww.getWeatherData(data)
-	if err != nil {
-		if errors.Is(err, dataErrors.ErrInvalidWeatherData) {
-			return nil
+// processData data is a string with the following format:
+// weather,city,data1_1,data1_2,...,data1_N|weather,city,data2_1,data2_2...,data2_N|PING
+// Only valid data from the received batch is sent to the next stage
+func (ww *WeatherWorker) processData(ctx context.Context, dataChunk string) error {
+	dataSplit := strings.Split(dataChunk, "|")
+	var dataToSend []*weather.WeatherData
+	for _, data := range dataSplit {
+		if strings.Contains(data, "PING") {
+			log.Debug("bypassing PING")
+			continue
 		}
-		return err
+
+		weatherData, err := ww.getWeatherData(data)
+		if err != nil {
+			if errors.Is(err, dataErrors.ErrInvalidWeatherData) {
+				continue
+			}
+			return err
+		}
+
+		if ww.isValid(weatherData) {
+			weatherData.City = ww.config.City
+			weatherData.Type = weatherStr
+			dataToSend = append(dataToSend, weatherData)
+		}
 	}
 
-	if ww.isValid(weatherData) {
-		log.Infof("[worker: %s][workerID: %v][status: OK][method: processData]: valid weather data %+v", weatherWorkerType, ww.GetID(), weatherData)
-		weatherData.City = ww.config.City
-		weatherData.Type = weatherStr
-		dataAsBytes, err := json.Marshal(weatherData)
-		if err != nil {
-			log.Errorf("[worker: %s][workerID: %v][status: error][method: publishMessage] error marshaling data: %s", weatherWorkerType, ww.GetID(), err.Error())
-			return err
-		}
-
-		err = ww.publishMessage(ctx, channel, dataAsBytes, "")
-		if err != nil {
-			log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing message: %s", weatherWorkerType, ww.GetID(), err.Error())
-			return err
-		}
+	if len(dataToSend) <= 0 {
 		return nil
 	}
 
-	log.Infof("[worker: %s][workerID: %v] INVALID DATA %s", weatherWorkerType, ww.GetID(), data)
+	dataAsBytes, err := json.Marshal(dataToSend)
+	if err != nil {
+		log.Errorf("[worker: %s][workerID: %v][status: error][method: publishMessage] error marshaling data: %s", weatherWorkerType, ww.GetID(), err.Error())
+		return err
+	}
+
+	targetQueue := fmt.Sprintf("%s.%s.join", weatherStr, ww.config.City) // ToDo: we need something when we have to publish in multiple queues, maybe an array of queue names
+	err = ww.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, dataAsBytes, "application/json")
+
+	if err != nil {
+		log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing message in join queue: %s", weatherWorkerType, ww.GetID(), err.Error())
+		return err
+	}
 	return nil
 }
 
@@ -262,32 +222,4 @@ func (ww *WeatherWorker) getWeatherData(data string) (*weather.WeatherData, erro
 // + Rainfall is greater than 30mm
 func (ww *WeatherWorker) isValid(weatherData *weather.WeatherData) bool {
 	return weatherData.Rainfall > ww.config.RainfallThreshold
-}
-
-func (ww *WeatherWorker) publishMessage(ctx context.Context, channel *amqp.Channel, data []byte, routingKey string) error {
-	// At this moment (02/05/2023 1.20am) nasty things will begin
-	targetExchange := exchangeOutput + weatherStr
-	exchangeConfig, ok := ww.config.RabbitMQConfig[weatherStr][targetExchange]
-	if !ok {
-		return fmt.Errorf("[worker: %s][workerID: %v][status: error][method: publishMessage] invalid target exchange %s", weatherWorkerType, ww.GetID(), targetExchange)
-	}
-
-	publishConfig := exchangeConfig.PublishingConfig
-	log.Infof("[worker: %s][workerID: %v][status: OK][method: publishMessage]Publishing message in exchange %s", weatherWorkerType, ww.GetID(), publishConfig.Exchange)
-
-	// Generic idea for routing key: city.accumulatorName.brokerID. If we received a routing key, it means that is a wildcard routing key
-	if routingKey == "" {
-		routingKey = fmt.Sprintf("%s.rain-accumulator.%v", ww.config.City, ww.config.ID)
-	}
-
-	return channel.PublishWithContext(ctx,
-		publishConfig.Exchange,
-		routingKey,
-		publishConfig.Mandatory,
-		publishConfig.Immediate,
-		amqp.Publishing{
-			ContentType: publishConfig.ContentType,
-			Body:        data,
-		},
-	)
 }
