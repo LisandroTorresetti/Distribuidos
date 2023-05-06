@@ -29,11 +29,11 @@ type WeatherWorker struct {
 	delimiter string
 }
 
-func NewWeatherWorker(weatherBrokerConfig *config.WeatherConfig, rabbitMQ *communication.RabbitMQ) *WeatherWorker {
+func NewWeatherWorker(weatherWorkerConfig *config.WeatherConfig, rabbitMQ *communication.RabbitMQ) *WeatherWorker {
 	return &WeatherWorker{
 		delimiter: ",",
 		rabbitMQ:  rabbitMQ,
-		config:    weatherBrokerConfig,
+		config:    weatherWorkerConfig,
 	}
 }
 
@@ -182,7 +182,7 @@ func (ww *WeatherWorker) processData(ctx context.Context, dataChunk string) erro
 
 	dataAsBytes, err := json.Marshal(dataToSend)
 	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error][method: publishMessage] error marshaling data: %s", weatherWorkerType, ww.GetID(), err.Error())
+		log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshaling data: %s", weatherWorkerType, ww.GetID(), err.Error())
 		return err
 	}
 
