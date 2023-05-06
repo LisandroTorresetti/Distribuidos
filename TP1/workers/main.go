@@ -1,13 +1,15 @@
 package main
 
 import (
-	amqp "github.com/rabbitmq/amqp091-go"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"tp1/workers/factory"
 )
 
-const rabbitUrl = "amqp://guest:guest@rabbit:5672/"
+const (
+	logLevelEnv   = "LOG_LEVEL"
+	workerTypeEnv = "WORKER_TYPE"
+)
 
 // InitLogger Receives the log level to be set in logrus as a string. This method
 // parses the string and set the level to the logger. If the level string is not
@@ -28,7 +30,7 @@ func InitLogger(logLevel string) error {
 }
 
 func main() {
-	logLevel := os.Getenv("LOG_LEVEL")
+	logLevel := os.Getenv(logLevelEnv)
 	if logLevel == "" {
 		logLevel = "DEBUG"
 	}
@@ -37,7 +39,7 @@ func main() {
 		return
 	}
 
-	workerType := os.Getenv("WORKER_TYPE")
+	workerType := os.Getenv(workerTypeEnv)
 
 	worker, err := factory.NewWorker(workerType)
 	if err != nil {
@@ -45,37 +47,28 @@ func main() {
 		return
 	}
 
-	conn, err := amqp.Dial(rabbitUrl)
+	defer func(worker factory.IWorker) {
+		err := worker.Kill()
+		if err != nil {
+			log.Errorf("[worker: %s][workerID: %v] error killing worker: %s", worker.GetType(), worker.GetID(), err.Error())
+		}
+	}(worker)
+
+	err = worker.DeclareQueues()
 	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error] failed to connect to RabbitMQ: %s", worker.GetType(), worker.GetID(), err.Error())
+		log.Debugf("[worker: %s][workerID: %v] %s", worker.GetType(), worker.GetID(), err.Error())
 		return
 	}
 
-	defer conn.Close()
-
-	ch, err := conn.Channel()
+	err = worker.DeclareExchanges()
 	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error] failed to open a RabbitMQ Channel: %s", worker.GetType(), worker.GetID(), err.Error())
+		log.Debugf("[worker: %s][workerID: %v] %s", worker.GetType(), worker.GetID(), err.Error())
 		return
 	}
 
-	defer ch.Close()
-
-	err = worker.DeclareQueues(ch)
+	err = worker.ProcessInputMessages()
 	if err != nil {
-		log.Debugf("%s", err.Error())
-		return
-	}
-
-	err = worker.DeclareExchanges(ch)
-	if err != nil {
-		log.Debugf("%s", err.Error())
-		return
-	}
-
-	err = worker.ProcessInputMessages(ch)
-	if err != nil {
-		log.Debugf("Error processing messages: %s", err.Error())
+		log.Debugf("[worker: %s][workerID: %v] error processing messages: %s", worker.GetType(), worker.GetID(), err.Error())
 		return
 	}
 
