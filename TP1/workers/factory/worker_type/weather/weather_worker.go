@@ -19,6 +19,7 @@ const (
 	dateLayout        = "2006-01-02"
 	weatherWorkerType = "weather-worker"
 	weatherStr        = "weather"
+	exchangePostfix   = "-topic"
 )
 
 type WeatherWorker struct {
@@ -99,7 +100,7 @@ func (ww *WeatherWorker) DeclareExchanges() error {
 
 // ProcessInputMessages process all messages that Weather Worker receives
 func (ww *WeatherWorker) ProcessInputMessages() error {
-	exchangeName := weatherStr + "-topic"
+	exchangeName := weatherStr + exchangePostfix
 	routingKeys := ww.GetRoutingKeys()
 
 	consumer, err := ww.rabbitMQ.GetExchangeConsumer(exchangeName, routingKeys)
@@ -116,8 +117,8 @@ func (ww *WeatherWorker) ProcessInputMessages() error {
 	for message := range consumer {
 		msg := string(message.Body)
 		if msg == eofString {
-			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received", weatherWorkerType, ww.GetID())
-			targetQueue := fmt.Sprintf("eof_%s_%s_queue", weatherStr, ww.config.City)
+			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", weatherWorkerType, ww.GetID(), eofString)
+			targetQueue := fmt.Sprintf("eof-%s-%s-queue", weatherStr, ww.config.City)
 			eofMessage := []byte(eofString)
 			err = ww.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, eofMessage, "text/plain")
 

@@ -3,6 +3,8 @@ package factory
 import (
 	"fmt"
 	"tp1/communication"
+	"tp1/workers/factory/worker_type/trip"
+	tripsConfig "tp1/workers/factory/worker_type/trip/config"
 	"tp1/workers/factory/worker_type/weather"
 	weatherConfig "tp1/workers/factory/worker_type/weather/config"
 )
@@ -37,6 +39,14 @@ func NewWorker(workerType string) (IWorker, error) {
 			return nil, fmt.Errorf("[method: InitWorker][status: error] error getting Weather Worker config: %w", err)
 		}
 		return weather.NewWeatherWorker(cfg, rabbitMQ), nil
+	}
+
+	if workerType == tripsWorker {
+		cfg, err := tripsConfig.LoadConfig()
+		if err != nil {
+			return nil, fmt.Errorf("[method: InitWorker][status: error] error getting Trip Worker config: %w", err)
+		}
+		return trip.NewTripWorker(cfg, rabbitMQ), nil
 	}
 
 	return nil, fmt.Errorf("[method: InitWorker][status: error] Invalid worker type %s", workerType)
