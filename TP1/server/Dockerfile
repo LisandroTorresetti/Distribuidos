@@ -8,7 +8,7 @@ COPY ../utils/ ./utils/
 COPY ../server/handler/ ./server/handler/
 COPY ../server/*.go .
 COPY ../server/config/ ./config/
-COPY ../domain/communication/ ./domain/communication/
+COPY ../communication/ ./communication/
 
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o main

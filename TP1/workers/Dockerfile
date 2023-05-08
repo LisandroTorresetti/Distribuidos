@@ -4,7 +4,7 @@ WORKDIR /workers
 COPY ../go.mod .
 COPY ../go.sum .
 COPY ../utils/ ./utils/
-COPY ../domain/communication/ ./domain/communication/
+COPY ../communication/ ./communication/
 COPY ../domain/entities/ ./domain/entities/
 COPY ../workers/factory/ ./workers/factory/
 COPY ../workers/*.go .
