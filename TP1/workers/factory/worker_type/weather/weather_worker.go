@@ -19,8 +19,6 @@ const (
 	dateLayout        = "2006-01-02"
 	weatherWorkerType = "weather-worker"
 	weatherStr        = "weather"
-	exchangeInput     = "exchange_input_"
-	exchangeOutput    = "exchange_output_"
 )
 
 type WeatherWorker struct {
@@ -51,32 +49,27 @@ func (ww *WeatherWorker) GetType() string {
 func (ww *WeatherWorker) GetRoutingKeys() []string {
 	return []string{
 		fmt.Sprintf("%s.%s.%v", weatherStr, ww.config.City, ww.GetID()), // input routing key: weather.city.workerID
-		fmt.Sprintf("%s.eof", weatherStr),                               //weather.eof
+		fmt.Sprintf("eof.%s.%s", weatherStr, ww.config.City),            //eof.dataType.city
 	}
 }
 
 // GetEOFString returns the Weather Worker expected EOF String
 func (ww *WeatherWorker) GetEOFString() string {
-	return weatherStr + "-PONG"
-}
-
-// GetEOFMessageTuned returns an EOF message with the following structure: eof.weather.city.workerID
-// Possible values for city: washington, toronto, montreal
-func (ww *WeatherWorker) GetEOFMessageTuned() string {
-	return fmt.Sprintf("eof.%s.%s.%v", weatherStr, ww.config.City, ww.GetID())
+	return fmt.Sprintf("eof.%s.%s", weatherStr, ww.config.City)
 }
 
 // DeclareQueues declares non-anonymous queues for Weather Worker
 // Queues: EOF queue
 func (ww *WeatherWorker) DeclareQueues() error {
-	var queues []communication.QueueDeclarationConfig
-	for key, rabbitConfig := range ww.config.RabbitMQConfig[weatherStr] {
-		if strings.Contains(key, "queue") {
-			queues = append(queues, rabbitConfig.QueueDeclarationConfig)
-		}
+	queueDeclarationConfig := communication.QueueDeclarationConfig{
+		Name:             fmt.Sprintf("eof-%s-%s-queue", weatherStr, ww.config.City),
+		Durable:          true,
+		DeleteWhenUnused: false,
+		Exclusive:        true,
+		NoWait:           false,
 	}
 
-	err := ww.rabbitMQ.DeclareNonAnonymousQueues(queues)
+	err := ww.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{queueDeclarationConfig})
 	if err != nil {
 		return err
 	}
@@ -106,7 +99,7 @@ func (ww *WeatherWorker) DeclareExchanges() error {
 
 // ProcessInputMessages process all messages that Weather Worker receives
 func (ww *WeatherWorker) ProcessInputMessages() error {
-	exchangeName := exchangeInput + weatherStr
+	exchangeName := weatherStr + "-topic"
 	routingKeys := ww.GetRoutingKeys()
 
 	consumer, err := ww.rabbitMQ.GetExchangeConsumer(exchangeName, routingKeys)
@@ -124,8 +117,8 @@ func (ww *WeatherWorker) ProcessInputMessages() error {
 		msg := string(message.Body)
 		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received", weatherWorkerType, ww.GetID())
-			targetQueue := fmt.Sprintf("%s.eof.manager", weatherStr) // ToDo: create a better string if its necessary
-			eofMessage := []byte(ww.GetEOFMessageTuned())
+			targetQueue := fmt.Sprintf("eof_%s_%s_queue", weatherStr, ww.config.City)
+			eofMessage := []byte(eofString)
 			err = ww.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, eofMessage, "text/plain")
 
 			if err != nil {

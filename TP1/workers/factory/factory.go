@@ -17,7 +17,6 @@ type IWorker interface {
 	GetType() string
 	GetRoutingKeys() []string
 	GetEOFString() string
-	GetEOFMessageTuned() string
 	DeclareQueues() error
 	DeclareExchanges() error
 	ProcessInputMessages() error

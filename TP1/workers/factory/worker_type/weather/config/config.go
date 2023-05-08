@@ -17,12 +17,11 @@ type weatherValidColumns struct {
 	Rainfall int `yaml:"rainfall"`
 }
 type WeatherConfig struct {
-	RainfallThreshold       float64                                            `yaml:"rainfall_threshold"`
-	ValidColumnsIndexes     weatherValidColumns                                `yaml:"valid_columns"`
-	RabbitMQConfig          map[string]map[string]communication.RabbitMQConfig `yaml:"rabbit_mq"`
-	FinishProcessingMessage string
-	City                    string
-	ID                      int
+	RainfallThreshold   float64                                            `yaml:"rainfall_threshold"`
+	ValidColumnsIndexes weatherValidColumns                                `yaml:"valid_columns"`
+	RabbitMQConfig      map[string]map[string]communication.RabbitMQConfig `yaml:"rabbit_mq"`
+	City                string
+	ID                  int
 }
 
 func LoadConfig() (*WeatherConfig, error) {
@@ -36,7 +35,6 @@ func LoadConfig() (*WeatherConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing weather config file: %s", err)
 	}
-	weatherConfig.FinishProcessingMessage = os.Getenv("FINISH_PROCESSING_MESSAGE")
 	weatherConfig.City = os.Getenv("CITY")
 	weatherConfig.ID, _ = strconv.Atoi(os.Getenv("WORKER_ID"))
 

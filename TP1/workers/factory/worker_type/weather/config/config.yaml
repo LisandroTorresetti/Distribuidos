@@ -7,30 +7,19 @@ valid_columns:
 
 rabbit_mq:
   weather:
-    exchange_input_weather: # messages from server to X-worker
+    exchange_input_weather: # messages from server to weather-worker
       exchange_declaration_config:
-        name: "weather_topic"
+        name: "weather-topic"
         type: "topic"
         durable: true
         auto_deleted: false
         internal: false
         no_wait: false
 
-      consumption_config:
-        exchange: "weather_topic"
-        mandatory: false
-        immediate: false
-        content_type: "text/plain"
 
-      queue_declaration_config: # Anonymous queue for consuming messages
-        durable: true
-        delete_when_unused: false
-        exclusive: true
-        no_wait: false
-
-    exchange_output_weather: # messages from X-worker to rain accumulator
+    exchange_output_weather: # messages from weather-worker to rain accumulator
       exchange_declaration_config:
-        name: "rain_accumulator_topic"
+        name: "weather-rain-joiner-topic"
         type: "topic"
         durable: true
         auto_deleted: false
@@ -38,8 +27,7 @@ rabbit_mq:
         no_wait: false
 
       publishing_config:
-        exchange: "rain_accumulator_topic"
+        exchange: "weather-rain-joiner-topic"
         mandatory: false
         immediate: false
         content_type: "application/json"
-
