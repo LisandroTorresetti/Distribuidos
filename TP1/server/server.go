@@ -2,25 +2,24 @@ package main
 
 import (
 	"fmt"
-	amqp "github.com/rabbitmq/amqp091-go"
 	log "github.com/sirupsen/logrus"
 	"net"
-	"tp1/domain/communication"
+	"tp1/communication"
 	"tp1/server/handler"
 	"tp1/socket"
 )
 
 type ServerConfig struct {
-	Port                   string                            `yaml:"port"`
-	IP                     string                            `yaml:"ip"`
-	AckMessage             string                            `yaml:"ack_message"`
-	EndBatchMarker         string                            `yaml:"end_batch_marker"`
-	FinMessages            []string                          `yaml:"fin_messages"`
-	DataDelimiter          string                            `yaml:"data_delimiter"`
-	MaxAmountOfConnections int                               `yaml:"max_amount_of_connections"`
-	Protocol               string                            `yaml:"protocol"`
-	PacketLimit            int                               `yaml:"packet_limit"`
-	RabbitMQConfig         map[string]communication.RabbitMQ `yaml:"rabbit_mq"`
+	Port                   string                                  `yaml:"port"`
+	IP                     string                                  `yaml:"ip"`
+	AckMessage             string                                  `yaml:"ack_message"`
+	EndBatchMarker         string                                  `yaml:"end_batch_marker"`
+	FinMessages            []string                                `yaml:"fin_messages"`
+	DataDelimiter          string                                  `yaml:"data_delimiter"`
+	MaxAmountOfConnections int                                     `yaml:"max_amount_of_connections"`
+	Protocol               string                                  `yaml:"protocol"`
+	PacketLimit            int                                     `yaml:"packet_limit"`
+	RabbitMQConfig         map[string]communication.RabbitMQConfig `yaml:"rabbit_mq"`
 }
 
 type Server struct {
@@ -45,34 +44,23 @@ func NewServer(config ServerConfig) *Server {
 }
 
 func (s *Server) DeclareExchanges() error {
-	conn, err := amqp.Dial("amqp://guest:guest@rabbit:5672/")
+	rabbitMQ, err := communication.NewRabbitMQ()
 	if err != nil {
-		return fmt.Errorf("failed to connect to RabbitMQ: %s", err.Error())
+		log.Errorf("[server] rabbitMQ initialization error: %s", err.Error())
+		return err
 	}
-	defer conn.Close()
+	var exchangesDeclarations []communication.ExchangeDeclarationConfig
+	for _, value := range s.config.RabbitMQConfig {
+		exchangesDeclarations = append(exchangesDeclarations, value.ExchangeDeclarationConfig)
+	}
 
-	ch, err := conn.Channel()
+	err = rabbitMQ.DeclareExchanges(exchangesDeclarations)
 	if err != nil {
-		return fmt.Errorf("failed to open a channel: %s", err.Error())
+		return fmt.Errorf("[server] error declaring exchanges: %w", err)
 	}
-	defer ch.Close()
 
-	for _, rabbitConfig := range s.config.RabbitMQConfig {
-		exchangeDeclareConfig := rabbitConfig.ExchangeDeclarationConfig
-		err = ch.ExchangeDeclare(
-			exchangeDeclareConfig.Name,
-			exchangeDeclareConfig.Type,
-			exchangeDeclareConfig.Durable,
-			exchangeDeclareConfig.AutoDeleted,
-			exchangeDeclareConfig.Internal,
-			exchangeDeclareConfig.NoWait,
-			nil,
-		)
-		if err != nil {
-			return fmt.Errorf("error declaring exchange %s", exchangeDeclareConfig.Name)
-		}
-		log.Debugf("exchange %s declared correctly", exchangeDeclareConfig.Name)
-	}
+	log.Debug("[server] All exchange were declared correctly")
+
 	return nil
 
 }
@@ -95,9 +83,6 @@ func (s *Server) Run() error {
 		}
 	}(s.serverSocket)
 
-	names := []string{"LICHA", "TADEO"}
-	counter := 0
-
 	for {
 		log.Debug("[server] waiting for new connections")
 		// Accept new connection
@@ -108,27 +93,42 @@ func (s *Server) Run() error {
 		}
 		log.Debug("[server] connection accepted!")
 
-		/*newSocket := *s.serverSocket
-		newSocket.SetConnection(conn)*/
+		go func(conn net.Conn) {
+			newSocket := socket.NewSocket(s.getSocketConfig())
+			newSocket.SetConnection(conn)
 
-		go func(conn *net.Conn) {
-			newSocket := *s.serverSocket
-			newSocket.SetConnection(*conn)
+			rabbitMQ, err := communication.NewRabbitMQ()
+			if err != nil {
+				log.Errorf("[server] error with rabbit: %s", err.Error())
+				return
+			}
+
 			messageHandler := handler.NewMessageHandler(
 				handler.MessageHandlerConfig{
 					EndBatchMarker: s.config.EndBatchMarker,
 					FinMessages:    s.config.FinMessages,
 					AckMessage:     s.config.AckMessage,
 				},
-				&newSocket,
-				s.config.RabbitMQConfig,
-				names[counter],
+				newSocket,
+				rabbitMQ,
 			)
-			counter += 1
-			err := messageHandler.ProcessData()
+
+			err = messageHandler.ProcessData()
 			if err != nil {
-				log.Errorf("error processing data: %s", err.Error())
+				log.Errorf("[server] error processing data: %s", err.Error())
+				return
 			}
-		}(&conn)
+
+			log.Debug("[server] Data was processed correctly!")
+		}(conn)
+	}
+}
+
+func (s *Server) getSocketConfig() socket.SocketConfig {
+	return socket.SocketConfig{
+		ServerAddress: s.config.IP + ":" + s.config.Port,
+		ServerACK:     s.config.AckMessage,
+		Protocol:      s.config.Protocol,
+		PacketLimit:   s.config.PacketLimit,
 	}
 }
