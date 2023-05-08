@@ -16,11 +16,10 @@ import (
 )
 
 const (
-	dateLayout     = "2006-01-02"
-	tripWorkerType = "trips-worker"
-	tripStr        = "trips"
-	exchangeInput  = "exchange_input_"
-	exchangeOutput = "exchange_output_"
+	dateLayout      = "2006-01-02"
+	tripWorkerType  = "trips-worker"
+	tripStr         = "trips"
+	exchangePostfix = "-topic"
 )
 
 type TripWorker struct {
@@ -51,31 +50,26 @@ func (tw *TripWorker) GetType() string {
 func (tw *TripWorker) GetRoutingKeys() []string {
 	return []string{
 		fmt.Sprintf("%s.%s.%v", tripStr, tw.config.City, tw.GetID()), // input routing key: trips.city.workerID
-		fmt.Sprintf("%s.eof", tripStr),
+		fmt.Sprintf("eof.%s.%s", tripStr, tw.config.City),            //eof.dataType.city
 	}
 }
 
 // GetEOFString returns the Trip Worker expected EOF String
 func (tw *TripWorker) GetEOFString() string {
-	return tripStr + "-PONG"
-}
-
-// GetEOFMessageTuned returns an EOF message with the following structure: eof.trips.city.workerID
-// Possible values for city: washington, toronto, montreal
-func (tw *TripWorker) GetEOFMessageTuned() string {
-	return fmt.Sprintf("eof.%s.%s.%v", tripStr, tw.config.City, tw.GetID())
+	return fmt.Sprintf("eof.%s.%s", tripStr, tw.config.City)
 }
 
 // DeclareQueues declares non-anonymous queues for Trip Worker
 func (tw *TripWorker) DeclareQueues() error {
-	var queues []communication.QueueDeclarationConfig
-	for key, rabbitConfig := range tw.config.RabbitMQConfig[tripStr] {
-		if strings.Contains(key, "queue") {
-			queues = append(queues, rabbitConfig.QueueDeclarationConfig)
-		}
+	queueDeclarationConfig := communication.QueueDeclarationConfig{
+		Name:             fmt.Sprintf("eof-%s-%s-queue", tripStr, tw.config.City),
+		Durable:          true,
+		DeleteWhenUnused: false,
+		Exclusive:        true,
+		NoWait:           false,
 	}
 
-	err := tw.rabbitMQ.DeclareNonAnonymousQueues(queues)
+	err := tw.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{queueDeclarationConfig})
 	if err != nil {
 		return err
 	}
@@ -104,7 +98,7 @@ func (tw *TripWorker) DeclareExchanges() error {
 
 // ProcessInputMessages process all messages that Trip Worker receives
 func (tw *TripWorker) ProcessInputMessages() error {
-	exchangeName := exchangeInput + tripStr
+	exchangeName := tripStr + exchangePostfix
 	routingKeys := tw.GetRoutingKeys()
 
 	consumer, err := tw.rabbitMQ.GetExchangeConsumer(exchangeName, routingKeys)
@@ -121,9 +115,9 @@ func (tw *TripWorker) ProcessInputMessages() error {
 	for message := range consumer {
 		msg := string(message.Body)
 		if msg == eofString {
-			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received", tripWorkerType, tw.GetID())
-			targetQueue := fmt.Sprintf("%s.eof.manager", tripStr) // ToDo: create a better string if its necessary
-			eofMessage := []byte(tw.GetEOFMessageTuned())
+			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", tripWorkerType, tw.GetID(), eofString)
+			targetQueue := fmt.Sprintf("eof-%s-%s-queue", tripStr, tw.config.City)
+			eofMessage := []byte(eofString)
 			err = tw.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, eofMessage, "text/plain")
 
 			if err != nil {
@@ -161,7 +155,7 @@ func (tw *TripWorker) processData(ctx context.Context, dataChunk string) error {
 
 		tripData, err := tw.getTripData(data)
 		if err != nil {
-			if errors.Is(err, dataErrors.ErrInvalidWeatherData) {
+			if errors.Is(err, dataErrors.ErrInvalidTripData) {
 				continue
 			}
 			return err
@@ -178,14 +172,16 @@ func (tw *TripWorker) processData(ctx context.Context, dataChunk string) error {
 		return nil
 	}
 
-	dataAsBytes, err := json.Marshal(dataToSend)
+	_, err := json.Marshal(dataToSend)
 	if err != nil {
 		log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshaling data: %s", tripWorkerType, tw.GetID(), err.Error())
 		return err
 	}
 
+	log.Debugf("[worker: %s][workerID: %v] RECIBI DATA LICHITA: %s", tripWorkerType, tw.GetID(), dataChunk)
+
 	//targetQueues := fmt.Sprintf("%s.%s.join", tripStr, tw.config.City) // ToDo: we need something when we have to publish in multiple queues, maybe an array of queue names
-	var targetQueues []string // Fixme: add values to this slice
+	/*var targetQueues []string // Fixme: add values to this slice
 	for _, targetQueue := range targetQueues {
 		err = tw.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, dataAsBytes, "application/json")
 
@@ -196,20 +192,24 @@ func (tw *TripWorker) processData(ctx context.Context, dataChunk string) error {
 			log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing message in join queue: %s", tripWorkerType, tw.GetID(), err.Error())
 			return err
 		}
-	}
+	}*/
 
 	return nil
 }
 
 func (tw *TripWorker) getTripData(data string) (*trip.TripData, error) {
 	dataSplit := strings.Split(data, tw.delimiter)
-	startDate, err := time.Parse(dateLayout, dataSplit[tw.config.ValidColumnsIndexes.StartDate])
+	startDateStr := dataSplit[tw.config.ValidColumnsIndexes.StartDate] // To avoid hours:minutes:seconds
+	startDateStr = strings.Split(startDateStr, " ")[0]
+	startDate, err := time.Parse(dateLayout, startDateStr)
 	if err != nil {
 		log.Debugf("Invalid start date: %v", dataSplit[tw.config.ValidColumnsIndexes.StartDate])
 		return nil, fmt.Errorf("%s: %w", dataErrors.ErrInvalidDate, dataErrors.ErrInvalidTripData)
 	}
 
-	endDate, err := time.Parse(dateLayout, dataSplit[tw.config.ValidColumnsIndexes.EndDate])
+	endDateStr := dataSplit[tw.config.ValidColumnsIndexes.EndDate]
+	endDateStr = strings.Split(endDateStr, " ")[0]
+	endDate, err := time.Parse(dateLayout, endDateStr)
 	if err != nil {
 		log.Debugf("Invalid end date; %v", dataSplit[tw.config.ValidColumnsIndexes.EndDate])
 		return nil, fmt.Errorf("%s: %w", dataErrors.ErrInvalidDate, dataErrors.ErrInvalidTripData)

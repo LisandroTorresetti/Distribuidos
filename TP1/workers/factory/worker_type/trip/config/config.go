@@ -22,11 +22,10 @@ type tripValidColumns struct {
 }
 
 type TripConfig struct {
-	ValidColumnsIndexes     tripValidColumns                                   `yaml:"valid_columns"`
-	RabbitMQConfig          map[string]map[string]communication.RabbitMQConfig `yaml:"rabbit_mq"`
-	FinishProcessingMessage string
-	City                    string
-	ID                      int
+	ValidColumnsIndexes tripValidColumns                                   `yaml:"valid_columns"`
+	RabbitMQConfig      map[string]map[string]communication.RabbitMQConfig `yaml:"rabbit_mq"`
+	City                string
+	ID                  int
 }
 
 func LoadConfig() (*TripConfig, error) {
@@ -41,7 +40,6 @@ func LoadConfig() (*TripConfig, error) {
 		return nil, fmt.Errorf("error parsing trip config file: %s", err)
 	}
 
-	tripConfig.FinishProcessingMessage = os.Getenv("FINISH_PROCESSING_MESSAGE")
 	tripConfig.City = os.Getenv("CITY")
 	tripConfig.ID, _ = strconv.Atoi(os.Getenv("WORKER_ID"))
 
