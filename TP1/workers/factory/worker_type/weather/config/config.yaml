@@ -25,9 +25,3 @@ rabbit_mq:
         auto_deleted: false
         internal: false
         no_wait: false
-
-      publishing_config:
-        exchange: "weather-rain-joiner-topic"
-        mandatory: false
-        immediate: false
-        content_type: "application/json"

@@ -1,0 +1,42 @@
+counters:
+  weather:
+    montreal: 1
+    washington: 1
+    toronto: 1
+
+  stations:
+    montreal: 1
+    washington: 1
+    toronto: 1
+
+  rainjoiner:
+    montreal: 1
+    washington: 1
+    toronto: 1
+
+  duplicatejoiner:
+    montreal: 1
+    washington: 1
+    toronto: 1
+
+  montrealjoiner:
+    montreal: 1
+
+responses:
+  weather: ["weather-rain-joiner-topic"]
+
+  stations: ["stations-montreal-joiner-topic", "stations-duplicate-joiner-topic"]
+
+queues:
+  - eof-weather-queue
+  - eof-stations-queue
+  - eof-rain-joiner-queue
+  - eof-duplicate-joiner-queue
+  - eof-montreal-joiner-queue
+
+exchanges:
+  - weather-rain-joiner-topic
+  - stations-montreal-joiner-topic
+  - stations-duplicate-joiner-topic
+
+# ToDo: declare the rest of the exchanges and queues
