@@ -11,6 +11,8 @@ services:
     depends_on:
       rabbit:
         condition: service_healthy
+      eof_manager:
+        condition: service_started
 
   client:
     container_name: client
@@ -22,7 +24,22 @@ services:
     networks:
       - bikers
     depends_on:
-      - server
+      eof_manager:
+        condition: service_started
+      server:
+        condition: service_started
+
+  eof_manager:
+    container_name: eof_manager
+    image: eofmanager:latest
+    entrypoint: ./main
+    environment:
+      - LOG_LEVEL=DEBUG
+    networks:
+      - bikers
+    depends_on:
+      rabbit:
+        condition: service_healthy
 
   worker:
     container_name: worker
@@ -36,6 +53,7 @@ services:
     networks:
       - bikers
     depends_on:
+      - eof_manager
       - rabbit
       - server
 

@@ -5,6 +5,7 @@ build-images:
 	docker build -f ./server/Dockerfile -t "server:latest" .
 	docker build -f ./client/Dockerfile -t "client:latest" .
 	docker build -f ./workers/Dockerfile -t "workers:latest" .
+	docker build -f ./eofmanager/Dockerfile -t "eofmanager:latest" .
 .PHONY: build-images
 
 mandale-mecha:
