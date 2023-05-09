@@ -9,7 +9,7 @@ import (
 	"tp1/utils"
 )
 
-const configFilepath = "./manager/config/config.yaml"
+const configFilepath = "./config/config.yaml"
 
 // InitLogger Receives the log level to be set in logrus as a string. This method
 // parses the string and set the level to the logger. If the level string is not

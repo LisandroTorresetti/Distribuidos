@@ -12,10 +12,10 @@ import (
 const eofQueue = "eof-queue"
 
 type eofConfig struct {
-	counters  map[string]map[string]int `yaml:"counters"`
-	queues    []string                  `yaml:"queues"`
-	exchanges []string                  `yaml:"exchanges"`
-	responses map[string][]string       `yaml:"responses"`
+	Counters  map[string]map[string]int `yaml:"counters"`
+	Queues    []string                  `yaml:"queues"`
+	Exchanges []string                  `yaml:"exchanges"`
+	Responses map[string][]string       `yaml:"responses"`
 }
 
 type EOFManager struct {
@@ -86,7 +86,7 @@ func (eof *EOFManager) DeclareQueues() error {
 
 func (eof *EOFManager) DeclareExchanges() error {
 	var exchangesDeclarations []communication.ExchangeDeclarationConfig
-	for _, exchangeName := range eof.config.exchanges {
+	for _, exchangeName := range eof.config.Exchanges {
 		exchangeDeclaration := communication.ExchangeDeclarationConfig{
 			Name:        exchangeName,
 			Type:        "topic",
@@ -119,10 +119,12 @@ func (eof *EOFManager) StartManaging() {
 			infinite <- err
 		}
 
+		log.Debugf("[EOF Manager] start consuming messages")
 		for message := range consumer {
 			eofMessage := string(message.Body)
 			eofComponents := getEOFComponents(eofMessage)
-			actualValue, ok := eof.config.counters[eofComponents.Stage][eofComponents.City]
+
+			actualValue, ok := eof.config.Counters[eofComponents.Stage][eofComponents.City]
 			if !ok {
 				panic(fmt.Sprintf("[EOF Manager] cannot found pair %s-%s", eofComponents.Stage, eofComponents.City))
 			}
@@ -132,7 +134,7 @@ func (eof *EOFManager) StartManaging() {
 				panic(fmt.Sprintf("[EOF Manager] received more EOF than expected for pair %s-%s", eofComponents.Stage, eofComponents.City))
 			}
 
-			eof.config.counters[eofComponents.Stage][eofComponents.City] = updatedValue
+			eof.config.Counters[eofComponents.Stage][eofComponents.City] = updatedValue
 			if updatedValue == 0 {
 				err = eof.sendStartProcessingMessage(ctx, eofComponents)
 				if err != nil {
@@ -148,7 +150,7 @@ func (eof *EOFManager) StartManaging() {
 }
 
 func (eof *EOFManager) sendStartProcessingMessage(ctx context.Context, eofComponents EOFMessageComponents) error {
-	targetExchanges, ok := eof.config.responses[eofComponents.Stage]
+	targetExchanges, ok := eof.config.Responses[eofComponents.Stage]
 	if !ok {
 		panic(fmt.Sprintf("[EOF Manager] cannot found exchange to send response for key %s", eofComponents.Stage))
 	}
