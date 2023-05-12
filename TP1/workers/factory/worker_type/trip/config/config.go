@@ -21,20 +21,21 @@ type tripValidColumns struct {
 	YearID           int `yaml:"year_id"`
 }
 
-type TripConfig struct {
+type TripWorkerConfig struct {
 	ValidColumnsIndexes tripValidColumns                                   `yaml:"valid_columns"`
-	RabbitMQConfig      map[string]map[string]communication.RabbitMQConfig `yaml:"rabbit_mq"`
+	ExchangesConfig     map[string]communication.ExchangeDeclarationConfig `yaml:"exchanges"`
+	EOFQueueConfig      communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
 	City                string
 	ID                  int
 }
 
-func LoadConfig() (*TripConfig, error) {
+func LoadConfig() (*TripWorkerConfig, error) {
 	configFile, err := utils.GetConfigFile(configFilepath)
 	if err != nil {
 		return nil, err
 	}
 
-	var tripConfig TripConfig
+	var tripConfig TripWorkerConfig
 	err = yaml.Unmarshal(configFile, &tripConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing trip config file: %s", err)

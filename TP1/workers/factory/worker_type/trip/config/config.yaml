@@ -6,41 +6,43 @@ valid_columns:
   duration: 6
   year_id: 8
 
-rabbit_mq:
-  trips:
-    exchange_input_trips: # messages from server to trip-worker
-      exchange_declaration_config:
-        name: "trips-topic"
-        type: "topic"
-        durable: true
-        auto_deleted: false
-        internal: false
-        no_wait: false
+exchanges:
+  exchange_input_trips: # messages from server to trip-worker
+    name: "trips-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
 
-    exchange_output_trips_rain: # messages from trip-worker to rain joiner
-      exchange_declaration_config:
-        name: "trips-rain-joiner-topic"
-        type: "topic"
-        durable: true
-        auto_deleted: false
-        internal: false
-        no_wait: false
+  exchange_output_trips_rain: # messages from trip-worker to rain joiner
+    name: "trips-rain-joiner-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
 
 
-    exchange_output_trips_year_filter: # messages from trip-worker to duplicate joiner
-      exchange_declaration_config:
-        name: "trips-duplicate-joiner-topic"
-        type: "topic"
-        durable: true
-        auto_deleted: false
-        internal: false
-        no_wait: false
+  exchange_output_trips_year_filter: # messages from trip-worker to duplicate joiner
+    name: "trips-duplicate-joiner-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
 
-    exchange_output_trips_montreal_filter: # messages from trip-worker to montreal joiner
-      exchange_declaration_config:
-        name: "trips-montreal-joiner-topic"
-        type: "topic"
-        durable: true
-        auto_deleted: false
-        internal: false
-        no_wait: false
+  exchange_output_trips_montreal_filter: # messages from trip-worker to montreal joiner
+    name: "trips-montreal-joiner-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
+
+eof_queue_config: # queue of the eof manager
+  name: "eof-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false

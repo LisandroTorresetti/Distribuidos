@@ -24,11 +24,11 @@ const (
 
 type TripWorker struct {
 	rabbitMQ  *communication.RabbitMQ
-	config    *config.TripConfig
+	config    *config.TripWorkerConfig
 	delimiter string
 }
 
-func NewTripWorker(tripWorkerConfig *config.TripConfig, rabbitMQ *communication.RabbitMQ) *TripWorker {
+func NewTripWorker(tripWorkerConfig *config.TripWorkerConfig, rabbitMQ *communication.RabbitMQ) *TripWorker {
 	return &TripWorker{
 		rabbitMQ:  rabbitMQ,
 		delimiter: ",",
@@ -61,15 +61,7 @@ func (tw *TripWorker) GetEOFString() string {
 
 // DeclareQueues declares non-anonymous queues for Trip Worker
 func (tw *TripWorker) DeclareQueues() error {
-	queueDeclarationConfig := communication.QueueDeclarationConfig{
-		Name:             fmt.Sprintf("eof-%s-%s-queue", tripStr, tw.config.City),
-		Durable:          true,
-		DeleteWhenUnused: false,
-		Exclusive:        true,
-		NoWait:           false,
-	}
-
-	err := tw.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{queueDeclarationConfig})
+	err := tw.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{tw.config.EOFQueueConfig})
 	if err != nil {
 		return err
 	}
@@ -81,10 +73,8 @@ func (tw *TripWorker) DeclareQueues() error {
 
 func (tw *TripWorker) DeclareExchanges() error {
 	var exchanges []communication.ExchangeDeclarationConfig
-	for key, rabbitConfig := range tw.config.RabbitMQConfig[tripStr] {
-		if strings.Contains(key, "exchange") {
-			exchanges = append(exchanges, rabbitConfig.ExchangeDeclarationConfig)
-		}
+	for _, exchange := range tw.config.ExchangesConfig {
+		exchanges = append(exchanges, exchange)
 	}
 
 	err := tw.rabbitMQ.DeclareExchanges(exchanges)
@@ -116,9 +106,8 @@ func (tw *TripWorker) ProcessInputMessages() error {
 		msg := string(message.Body)
 		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", tripWorkerType, tw.GetID(), eofString)
-			targetQueue := fmt.Sprintf("eof-%s-%s-queue", tripStr, tw.config.City)
 			eofMessage := []byte(eofString)
-			err = tw.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, eofMessage, "text/plain")
+			err = tw.rabbitMQ.PublishMessageInQueue(ctx, tw.config.EOFQueueConfig.Name, eofMessage, "text/plain")
 
 			if err != nil {
 				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing EOF message: %s", tripWorkerType, tw.GetID(), err.Error())
