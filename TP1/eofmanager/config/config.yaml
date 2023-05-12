@@ -27,12 +27,12 @@ responses:
 
   stations: ["stations-montreal-joiner-topic", "stations-duplicate-joiner-topic"]
 
-queues:
-  - eof-weather-queue
-  - eof-stations-queue
-  - eof-rain-joiner-queue
-  - eof-duplicate-joiner-queue
-  - eof-montreal-joiner-queue
+eof_queue_config:
+  name: "eof-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
 
 exchanges:
   - weather-rain-joiner-topic

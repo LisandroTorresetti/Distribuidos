@@ -57,17 +57,6 @@ func NewEOFManager(config *eofConfig, rabbitMQ *communication.RabbitMQ) *EOFMana
 }
 
 func (eof *EOFManager) DeclareQueues() error {
-	/*var queuesDeclarations []communication.QueueDeclarationConfig
-	for _, queueName := range eof.config.queues {
-		queueDeclarationConfig := communication.QueueDeclarationConfig{
-			Name:             queueName,
-			Durable:          true,
-			DeleteWhenUnused: false,
-			Exclusive:        true,
-			NoWait:           false,
-		}
-		queuesDeclarations = append(queuesDeclarations, queueDeclarationConfig)
-	}*/
 	queueDeclarationConfig := communication.QueueDeclarationConfig{
 		Name:             eofQueue,
 		Durable:          true,
