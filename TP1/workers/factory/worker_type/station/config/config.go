@@ -20,27 +20,27 @@ type stationValidColumns struct {
 	YearID    int `yaml:"year_id"` // ToDo: maybe we can delete this field. Licha
 }
 
-type StationConfig struct {
+type StationWorkerConfig struct {
 	ValidColumnsIndexes     stationValidColumns                                `yaml:"valid_columns"`
-	RabbitMQConfig          map[string]map[string]communication.RabbitMQConfig `yaml:"rabbit_mq"`
+	ExchangesConfig         map[string]communication.ExchangeDeclarationConfig `yaml:"exchanges"`
+	EOFQueueConfig          communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
 	FinishProcessingMessage string
 	City                    string
 	ID                      int
 }
 
-func LoadConfig() (*StationConfig, error) {
+func LoadConfig() (*StationWorkerConfig, error) {
 	configFile, err := utils.GetConfigFile(configFilepath)
 	if err != nil {
 		return nil, err
 	}
 
-	var stationConfig StationConfig
+	var stationConfig StationWorkerConfig
 	err = yaml.Unmarshal(configFile, &stationConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing station config file: %s", err)
 	}
 
-	stationConfig.FinishProcessingMessage = os.Getenv("FINISH_PROCESSING_MESSAGE")
 	stationConfig.City = os.Getenv("CITY")
 	stationConfig.ID, _ = strconv.Atoi(os.Getenv("WORKER_ID"))
 

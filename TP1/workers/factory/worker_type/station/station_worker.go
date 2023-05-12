@@ -26,11 +26,11 @@ const (
 
 type StationWorker struct {
 	rabbitMQ  *communication.RabbitMQ
-	config    *config.StationConfig
+	config    *config.StationWorkerConfig
 	delimiter string
 }
 
-func NewStationWorker(stationWorkerConfig *config.StationConfig, rabbitMQ *communication.RabbitMQ) *StationWorker {
+func NewStationWorker(stationWorkerConfig *config.StationWorkerConfig, rabbitMQ *communication.RabbitMQ) *StationWorker {
 	return &StationWorker{
 		delimiter: ",",
 		rabbitMQ:  rabbitMQ,

@@ -5,55 +5,34 @@ valid_columns:
   longitude: 5
   year_id: 6
 
-rabbit_mq:
-  station:
-    exchange_input_station: # messages from server to station-worker
-      exchange_declaration_config:
-        name: "station_topic"
-        type: "topic"
-        durable: true
-        auto_deleted: false
-        internal: false
-        no_wait: false
+exchanges:
+  exchange_input_stations: # messages from server to station-worker
+    name: "stations-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
 
-      consumption_config:
-        exchange: "station_topic"
-        mandatory: false
-        immediate: false
-        content_type: "text/plain"
+  exchange_output_stations_year_filter: # messages from station-worker to duplicate joiner
+    name: "stations-duplicate-joiner-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
 
-      queue_declaration_config: # Anonymous queue for consuming messages
-        durable: true
-        delete_when_unused: false
-        exclusive: true
-        no_wait: false
+  exchange_output_trips_montreal_filter: # messages from station-worker to montreal joiner
+    name: "stations-montreal-joiner-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
 
-    exchange_output_station_year_filter: # messages from station-worker to year filter
-      exchange_declaration_config:
-        name: "year_filter_topic"
-        type: "topic"
-        durable: true
-        auto_deleted: false
-        internal: false
-        no_wait: false
-
-      publishing_config:
-        exchange: "year_filter_topic"
-        mandatory: false
-        immediate: false
-        content_type: "application/json"
-
-    exchange_output_station_montreal_filter: # messages from station-worker to montreal filter
-      exchange_declaration_config:
-        name: "montreal_filter_topic"
-        type: "topic"
-        durable: true
-        auto_deleted: false
-        internal: false
-        no_wait: false
-
-      publishing_config:
-        exchange: "montreal_filter_topic"
-        mandatory: false
-        immediate: false
-        content_type: "application/json"
+eof_queue_config: # queue of the eof manager
+  name: "eof-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
