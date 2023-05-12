@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"os"
 )
 
-const rabbitUrl = "amqp://guest:guest@rabbit:5672/"
+const rabbitUrlEnvVarName = "RABBIT_URL"
 
 type RabbitMQ struct {
 	connection *amqp.Connection
@@ -16,7 +17,7 @@ type RabbitMQ struct {
 // NewRabbitMQ constructor for RabbitMQ. This function returns a RabbitMQ
 // with connections already established.
 func NewRabbitMQ() (*RabbitMQ, error) {
-	connection, err := amqp.Dial(rabbitUrl)
+	connection, err := amqp.Dial(os.Getenv(rabbitUrlEnvVarName))
 	if err != nil {
 		return nil, err
 	}

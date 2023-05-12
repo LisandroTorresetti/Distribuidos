@@ -63,6 +63,8 @@ services:
     ports:
       - '5672:5672'
       - '15672:15672'
+    environment:
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
     networks:
       - bikers
     healthcheck:
