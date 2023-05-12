@@ -16,21 +16,22 @@ type weatherValidColumns struct {
 	Date     int `yaml:"date"`
 	Rainfall int `yaml:"rainfall"`
 }
-type WeatherConfig struct {
+type WeatherWorkerConfig struct {
 	RainfallThreshold   float64                                            `yaml:"rainfall_threshold"`
 	ValidColumnsIndexes weatherValidColumns                                `yaml:"valid_columns"`
-	RabbitMQConfig      map[string]map[string]communication.RabbitMQConfig `yaml:"rabbit_mq"`
+	ExchangesConfig     map[string]communication.ExchangeDeclarationConfig `yaml:"exchanges"`
+	EOFQueueConfig      communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
 	City                string
 	ID                  int
 }
 
-func LoadConfig() (*WeatherConfig, error) {
+func LoadConfig() (*WeatherWorkerConfig, error) {
 	configFile, err := utils.GetConfigFile(configFilepath)
 	if err != nil {
 		return nil, err
 	}
 
-	var weatherConfig WeatherConfig
+	var weatherConfig WeatherWorkerConfig
 	err = yaml.Unmarshal(configFile, &weatherConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing weather config file: %s", err)

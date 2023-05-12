@@ -24,11 +24,11 @@ const (
 
 type WeatherWorker struct {
 	rabbitMQ  *communication.RabbitMQ
-	config    *config.WeatherConfig
+	config    *config.WeatherWorkerConfig
 	delimiter string
 }
 
-func NewWeatherWorker(weatherWorkerConfig *config.WeatherConfig, rabbitMQ *communication.RabbitMQ) *WeatherWorker {
+func NewWeatherWorker(weatherWorkerConfig *config.WeatherWorkerConfig, rabbitMQ *communication.RabbitMQ) *WeatherWorker {
 	return &WeatherWorker{
 		delimiter: ",",
 		rabbitMQ:  rabbitMQ,
@@ -62,20 +62,13 @@ func (ww *WeatherWorker) GetEOFString() string {
 // DeclareQueues declares non-anonymous queues for Weather Worker
 // Queues: EOF queue
 func (ww *WeatherWorker) DeclareQueues() error {
-	queueDeclarationConfig := communication.QueueDeclarationConfig{
-		Name:             fmt.Sprintf("eof-%s-%s-queue", weatherStr, ww.config.City),
-		Durable:          true,
-		DeleteWhenUnused: false,
-		Exclusive:        true,
-		NoWait:           false,
-	}
-
-	err := ww.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{queueDeclarationConfig})
+	err := ww.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{ww.config.EOFQueueConfig})
 	if err != nil {
 		return err
 	}
 
 	log.Infof("[worker: %s][workerID: %v][status: OK] queues declared correctly!", weatherWorkerType, ww.GetID())
+
 	return nil
 }
 
@@ -83,10 +76,8 @@ func (ww *WeatherWorker) DeclareQueues() error {
 // Exchanges: weather_topic, rain_accumulator_topic
 func (ww *WeatherWorker) DeclareExchanges() error {
 	var exchanges []communication.ExchangeDeclarationConfig
-	for key, rabbitConfig := range ww.config.RabbitMQConfig[weatherStr] {
-		if strings.Contains(key, "exchange") {
-			exchanges = append(exchanges, rabbitConfig.ExchangeDeclarationConfig)
-		}
+	for _, exchangeConfig := range ww.config.ExchangesConfig {
+		exchanges = append(exchanges, exchangeConfig)
 	}
 
 	err := ww.rabbitMQ.DeclareExchanges(exchanges)
@@ -118,9 +109,8 @@ func (ww *WeatherWorker) ProcessInputMessages() error {
 		msg := string(message.Body)
 		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", weatherWorkerType, ww.GetID(), eofString)
-			targetQueue := fmt.Sprintf("eof-%s-%s-queue", weatherStr, ww.config.City)
 			eofMessage := []byte(eofString)
-			err = ww.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, eofMessage, "text/plain")
+			err = ww.rabbitMQ.PublishMessageInQueue(ctx, ww.config.EOFQueueConfig.Name, eofMessage, "text/plain")
 
 			if err != nil {
 				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing EOF message: %s", weatherWorkerType, ww.GetID(), err.Error())

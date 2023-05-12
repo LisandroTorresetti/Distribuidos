@@ -4,24 +4,27 @@ valid_columns:
   date: 2
   rainfall: 3
 
-
-rabbit_mq:
-  weather:
-    exchange_input_weather: # messages from server to weather-worker
-      exchange_declaration_config:
-        name: "weather-topic"
-        type: "topic"
-        durable: true
-        auto_deleted: false
-        internal: false
-        no_wait: false
+exchanges:
+  exchange_input_weather: # messages from server to weather-worker
+      name: "weather-topic"
+      type: "topic"
+      durable: true
+      auto_deleted: false
+      internal: false
+      no_wait: false
 
 
-    exchange_output_weather: # messages from weather-worker to rain accumulator
-      exchange_declaration_config:
-        name: "weather-rain-joiner-topic"
-        type: "topic"
-        durable: true
-        auto_deleted: false
-        internal: false
-        no_wait: false
+  exchange_output_weather: # messages from weather-worker to rain accumulator
+      name: "weather-rain-joiner-topic"
+      type: "topic"
+      durable: true
+      auto_deleted: false
+      internal: false
+      no_wait: false
+
+eof_queue_config: # queue of the eof manager
+  name: "eof-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
