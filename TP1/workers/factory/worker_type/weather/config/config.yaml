@@ -14,8 +14,8 @@ exchanges:
       no_wait: false
 
 
-  exchange_output_weather: # messages from weather-worker to rain accumulator
-      name: "weather-rain-joiner-topic"
+  exchange_output_rain_joiner: # messages from weather-worker to rain accumulator
+      name: "weather-rainjoiner-topic"
       type: "topic"
       durable: true
       auto_deleted: false

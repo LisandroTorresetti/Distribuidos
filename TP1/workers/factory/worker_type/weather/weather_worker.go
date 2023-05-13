@@ -11,15 +11,19 @@ import (
 	"time"
 	"tp1/communication"
 	"tp1/domain/entities/weather"
+	"tp1/utils"
 	dataErrors "tp1/workers/factory/worker_type/errors"
 	"tp1/workers/factory/worker_type/weather/config"
 )
 
 const (
-	dateLayout        = "2006-01-02"
-	weatherWorkerType = "weather-worker"
-	weatherStr        = "weather"
-	exchangePostfix   = "-topic"
+	dateLayout           = "2006-01-02"
+	weatherWorkerType    = "weather-worker"
+	weatherStr           = "weather"
+	exchangePostfix      = "-topic"
+	outputTarget         = "output"
+	contentTypeJson      = "application/json"
+	contentTypePlainText = "text/plain"
 )
 
 type WeatherWorker struct {
@@ -102,7 +106,7 @@ func (ww *WeatherWorker) ProcessInputMessages() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	log.Debugf("[worker: %s][workerID: %v][status: OK]start consuming messages", weatherWorkerType, ww.GetID())
+	log.Infof("[worker: %s][workerID: %v][status: OK]start consuming messages", weatherWorkerType, ww.GetID())
 	eofString := ww.GetEOFString()
 
 	for message := range consumer {
@@ -110,7 +114,7 @@ func (ww *WeatherWorker) ProcessInputMessages() error {
 		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", weatherWorkerType, ww.GetID(), eofString)
 			eofMessage := []byte(eofString)
-			err = ww.rabbitMQ.PublishMessageInQueue(ctx, ww.config.EOFQueueConfig.Name, eofMessage, "text/plain")
+			err = ww.rabbitMQ.PublishMessageInQueue(ctx, ww.config.EOFQueueConfig.Name, eofMessage, contentTypePlainText)
 
 			if err != nil {
 				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing EOF message: %s", weatherWorkerType, ww.GetID(), err.Error())
@@ -126,6 +130,7 @@ func (ww *WeatherWorker) ProcessInputMessages() error {
 		}
 	}
 
+	log.Infof("[worker: %s][workerID: %v][status: OK] all data were processed", weatherWorkerType, ww.GetID())
 	return nil
 }
 
@@ -137,46 +142,26 @@ func (ww *WeatherWorker) Kill() error {
 // weather,city,data1_1,data1_2,...,data1_N|weather,city,data2_1,data2_2...,data2_N|PING
 // Only valid data from the received batch is sent to the next stage
 func (ww *WeatherWorker) processData(ctx context.Context, dataChunk string) error {
-	dataSplit := strings.Split(dataChunk, "|")
-	var dataToSend []*weather.WeatherData
-	for _, data := range dataSplit {
-		if strings.Contains(data, "PING") {
-			log.Debug("bypassing PING")
-			continue
-		}
-
-		weatherData, err := ww.getWeatherData(data)
-		if err != nil {
-			if errors.Is(err, dataErrors.ErrInvalidWeatherData) {
-				continue
-			}
-			return err
-		}
-
-		if ww.isValid(weatherData) {
-			weatherData.City = ww.config.City
-			weatherData.Type = weatherStr
-			dataToSend = append(dataToSend, weatherData)
-		}
+	quartersMap, err := ww.getValidDataToSend(dataChunk)
+	if err != nil {
+		return err
 	}
 
-	if len(dataToSend) <= 0 {
+	if !hasDataToSend(quartersMap) {
 		return nil
 	}
 
-	dataAsBytes, err := json.Marshal(dataToSend)
+	dataToSendMap, err := ww.marshalDataToSend(quartersMap)
 	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshaling data: %s", weatherWorkerType, ww.GetID(), err.Error())
 		return err
 	}
 
-	targetQueue := fmt.Sprintf("%s.%s.join", weatherStr, ww.config.City) // ToDo: we need something when we have to publish in multiple queues, maybe an array of queue names
-	err = ww.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, dataAsBytes, "application/json")
-
+	err = ww.publishData(ctx, dataToSendMap)
 	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing message in join queue: %s", weatherWorkerType, ww.GetID(), err.Error())
+		log.Errorf("[worker: %s][workerID: %v][status: Error] error publishing data in output exchanges", weatherWorkerType, ww.GetID())
 		return err
 	}
+
 	return nil
 }
 
@@ -207,3 +192,88 @@ func (ww *WeatherWorker) getWeatherData(data string) (*weather.WeatherData, erro
 func (ww *WeatherWorker) isValid(weatherData *weather.WeatherData) bool {
 	return weatherData.Rainfall > ww.config.RainfallThreshold
 }
+
+// getValidDataToSend returns a map organized by quarters (Q1, Q2, Q3, Q4) with valid data to send to the next stage.
+func (ww *WeatherWorker) getValidDataToSend(dataChunk string) (map[string][]*weather.WeatherData, error) {
+	dataSplit := strings.Split(dataChunk, "|")
+	quartersMap := getQuartersMap()
+	for _, data := range dataSplit {
+		if strings.Contains(data, "PING") {
+			log.Debug("bypassing PING")
+			continue
+		}
+
+		weatherData, err := ww.getWeatherData(data)
+		if err != nil {
+			if errors.Is(err, dataErrors.ErrInvalidWeatherData) {
+				continue
+			}
+			return nil, err
+		}
+
+		if ww.isValid(weatherData) {
+			weatherData.City = ww.config.City
+			weatherData.Type = weatherStr
+			quarterID := utils.GetQuarter(int(weatherData.Date.Month()))
+			quartersMap[quarterID] = append(quartersMap[quarterID], weatherData)
+		}
+	}
+	return quartersMap, nil
+}
+
+// marshalDataToSend returns a map with the quarters that have data to send
+func (ww *WeatherWorker) marshalDataToSend(data map[string][]*weather.WeatherData) (map[string][]byte, error) {
+	dataToSendMap := make(map[string][]byte)
+	for key, value := range data {
+		if len(value) > 0 {
+			dataAsBytes, err := json.Marshal(value)
+			if err != nil {
+				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshaling data: %s", weatherWorkerType, ww.GetID(), err.Error())
+				return nil, err
+			}
+			dataToSendMap[key] = dataAsBytes
+		}
+	}
+
+	return dataToSendMap, nil
+}
+
+// publishData publishes data in all output exchanges related with the Weather Worker
+func (ww *WeatherWorker) publishData(ctx context.Context, dataToSendMap map[string][]byte) error {
+	for exchangeName, _ := range ww.config.ExchangesConfig {
+		if strings.Contains(exchangeName, outputTarget) {
+			targetStage := utils.GetTargetStage(exchangeName)
+			for quarterID, dataToSend := range dataToSendMap {
+				routingKey := fmt.Sprintf("%s.%s.%s", targetStage, ww.config.City, quarterID)
+				err := ww.rabbitMQ.PublishMessageInExchange(ctx, exchangeName, routingKey, dataToSend, contentTypeJson)
+
+				if err != nil {
+					log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing message in join exchange: %s", weatherWorkerType, ww.GetID(), err.Error())
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func getQuartersMap() map[string][]*weather.WeatherData {
+	quartersMap := make(map[string][]*weather.WeatherData)
+	quartersMap["Q1"] = []*weather.WeatherData{}
+	quartersMap["Q2"] = []*weather.WeatherData{}
+	quartersMap["Q3"] = []*weather.WeatherData{}
+	quartersMap["Q4"] = []*weather.WeatherData{}
+
+	return quartersMap
+}
+
+func hasDataToSend(data map[string][]*weather.WeatherData) bool {
+	for _, value := range data {
+		if len(value) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
