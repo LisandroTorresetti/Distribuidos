@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 	"tp1/communication"
+	"tp1/domain/entities"
 	"tp1/domain/entities/trip"
 	"tp1/utils"
 	dataErrors "tp1/workers/factory/worker_type/errors"
@@ -257,8 +258,7 @@ func (tw *TripWorker) getValidDataToSend(dataChunk string) (map[string][]*trip.T
 		}
 
 		if tw.isValid(tripData) {
-			tripData.City = tw.config.City
-			tripData.Type = tripStr
+			tripData.Metadata = entities.NewMetadata(tw.config.City, tripStr, "")
 			quarterID := utils.GetQuarter(int(tripData.StartDate.Month()))
 			quartersMap[quarterID] = append(quartersMap[quarterID], tripData)
 		}

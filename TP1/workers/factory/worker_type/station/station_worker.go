@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 	"tp1/communication"
+	"tp1/domain/entities"
 	"tp1/domain/entities/station"
 	"tp1/utils"
 	dataErrors "tp1/workers/factory/worker_type/errors"
@@ -270,8 +271,7 @@ func (sw *StationWorker) getValidDataToSend(dataChunk string) ([]*station.Statio
 		}
 
 		if sw.isValid(stationData) {
-			stationData.City = sw.config.City
-			stationData.Type = stationStr
+			stationData.Metadata = entities.NewMetadata(sw.config.City, stationStr, "")
 			validStationData = append(validStationData, stationData)
 		}
 	}

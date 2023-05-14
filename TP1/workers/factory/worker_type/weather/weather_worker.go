@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 	"tp1/communication"
+	"tp1/domain/entities"
 	"tp1/domain/entities/weather"
 	"tp1/utils"
 	dataErrors "tp1/workers/factory/worker_type/errors"
@@ -210,8 +211,7 @@ func (ww *WeatherWorker) getValidDataToSend(dataChunk string) (map[string][]*wea
 		}
 
 		if ww.isValid(weatherData) {
-			weatherData.City = ww.config.City
-			weatherData.Type = weatherStr
+			weatherData.Metadata = entities.NewMetadata(ww.config.City, weatherStr, "")
 			quarterID := utils.GetQuarter(int(weatherData.Date.Month()))
 			quartersMap[quarterID] = append(quartersMap[quarterID], weatherData)
 		}

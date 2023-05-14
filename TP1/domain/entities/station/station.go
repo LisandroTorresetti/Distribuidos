@@ -1,21 +1,23 @@
 package station
 
+import "tp1/domain/entities"
+
 // StationData struct that contains the station data
-// + City: city which belongs the data
-// + Type: this field helps us to recognize in different stages what type of data is, in this case the value will always be 'stations'
+// + Metadata: metadata added to the structure
 // + Code: ID of the station
 // + Name: name of the station
 // + Latitude: latitude of the station
 // + Longitude: longitude of the station
 // + YearID: year in which the station begins to operate
-// + EOF: when this field is set, all the others have a zero-value. This field it's to indicate that all stations data was processed
 type StationData struct {
-	City      string  `json:"city"`
-	Type      string  `json:"type"`
-	Code      int     `json:"code"`
-	Name      string  `json:"name"`
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-	YearID    int     `json:"year_id"`
-	EOF       string  `json:"eof"`
+	Metadata  entities.Metadata `json:"metadata"`
+	Code      int               `json:"code"`
+	Name      string            `json:"name"`
+	Latitude  float64           `json:"latitude"`
+	Longitude float64           `json:"longitude"`
+	YearID    int               `json:"year_id"`
+}
+
+func (sd StationData) GetMetadata() entities.Metadata {
+	return sd.Metadata
 }

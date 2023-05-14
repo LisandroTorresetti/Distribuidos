@@ -39,7 +39,7 @@ func NewWorker(workerType string) (IWorker, error) {
 	if workerType == weatherWorker {
 		cfg, err := weatherConfig.LoadConfig()
 		if err != nil {
-			return nil, fmt.Errorf("[method: InitWorker][status: error] error getting Weather Worker config: %w", err)
+			return nil, fmt.Errorf("[method: NewWorker][status: error] error getting Weather Worker config: %w", err)
 		}
 		return weather.NewWeatherWorker(cfg, rabbitMQ), nil
 	}
@@ -47,7 +47,7 @@ func NewWorker(workerType string) (IWorker, error) {
 	if workerType == tripsWorker {
 		cfg, err := tripsConfig.LoadConfig()
 		if err != nil {
-			return nil, fmt.Errorf("[method: InitWorker][status: error] error getting Trip Worker config: %w", err)
+			return nil, fmt.Errorf("[method: NewWorker][status: error] error getting Trip Worker config: %w", err)
 		}
 		return trip.NewTripWorker(cfg, rabbitMQ), nil
 	}
@@ -55,10 +55,10 @@ func NewWorker(workerType string) (IWorker, error) {
 	if workerType == stationsWorker {
 		cfg, err := stationsConfig.LoadConfig()
 		if err != nil {
-			return nil, fmt.Errorf("[method: InitWorker][status: error] error getting Station Worker config: %w", err)
+			return nil, fmt.Errorf("[method: NewWorker][status: error] error getting Station Worker config: %w", err)
 		}
 		return station.NewStationWorker(cfg, rabbitMQ), nil
 	}
 
-	return nil, fmt.Errorf("[method: InitWorker][status: error] Invalid worker type %s", workerType)
+	return nil, fmt.Errorf("[method: NewWorker][status: error] Invalid worker type %s", workerType)
 }
