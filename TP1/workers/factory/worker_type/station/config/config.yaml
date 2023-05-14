@@ -5,6 +5,13 @@ valid_columns:
   longitude: 5
   year_id: 6
 
+data_delimiter: '|'
+data_field_delimiter: ','
+end_batch_marker: 'PING'
+
+include_years: [2016, 2017]
+include_cities: ["montreal"]
+
 exchanges:
   exchange_input_stations: # messages from server to station-worker
     name: "stations-topic"
@@ -14,16 +21,16 @@ exchanges:
     internal: false
     no_wait: false
 
-  exchange_output_stations_year_filter: # messages from station-worker to duplicate joiner
-    name: "stations-duplicate-joiner-topic"
+  exchange_output_year_joiner: # messages from station-worker to year joiner
+    name: "stations-yearjoiner-topic"
     type: "topic"
     durable: true
     auto_deleted: false
     internal: false
     no_wait: false
 
-  exchange_output_trips_montreal_filter: # messages from station-worker to montreal joiner
-    name: "stations-montreal-joiner-topic"
+  exchange_output_montreal_joiner: # messages from station-worker to montreal joiner
+    name: "stations-montrealjoiner-topic"
     type: "topic"
     durable: true
     auto_deleted: false

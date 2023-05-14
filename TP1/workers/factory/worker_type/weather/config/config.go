@@ -21,6 +21,9 @@ type WeatherWorkerConfig struct {
 	ValidColumnsIndexes weatherValidColumns                                `yaml:"valid_columns"`
 	ExchangesConfig     map[string]communication.ExchangeDeclarationConfig `yaml:"exchanges"`
 	EOFQueueConfig      communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
+	DataDelimiter       string                                             `yaml:"data_delimiter"`
+	DataFieldDelimiter  string                                             `yaml:"data_field_delimiter"`
+	EndBatchMarker      string                                             `yaml:"end_batch_marker"`
 	City                string
 	ID                  int
 }

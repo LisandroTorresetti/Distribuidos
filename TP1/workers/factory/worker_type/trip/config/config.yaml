@@ -6,6 +6,13 @@ valid_columns:
   duration: 6
   year_id: 8
 
+data_delimiter: '|'
+data_field_delimiter: ','
+end_batch_marker: 'PING'
+
+include_years: [2016, 2017]
+include_cities: ["montreal"]
+
 exchanges:
   exchange_input_trips: # messages from server to trip-worker
     name: "trips-topic"
@@ -15,8 +22,8 @@ exchanges:
     internal: false
     no_wait: false
 
-  exchange_output_trips_rain: # messages from trip-worker to rain joiner
-    name: "trips-rain-joiner-topic"
+  exchange_output_rain_joiner: # messages from trip-worker to rain joiner
+    name: "trips-rainjoiner-topic"
     type: "topic"
     durable: true
     auto_deleted: false
@@ -24,16 +31,16 @@ exchanges:
     no_wait: false
 
 
-  exchange_output_trips_year_filter: # messages from trip-worker to duplicate joiner
-    name: "trips-duplicate-joiner-topic"
+  exchange_output_year_joiner: # messages from trip-worker to year joiner
+    name: "trips-yearjoiner-topic"
     type: "topic"
     durable: true
     auto_deleted: false
     internal: false
     no_wait: false
 
-  exchange_output_trips_montreal_filter: # messages from trip-worker to montreal joiner
-    name: "trips-montreal-joiner-topic"
+  exchange_output_montreal_joiner: # messages from trip-worker to montreal joiner
+    name: "trips-montrealjoiner-topic"
     type: "topic"
     durable: true
     auto_deleted: false

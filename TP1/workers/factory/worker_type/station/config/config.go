@@ -21,12 +21,16 @@ type stationValidColumns struct {
 }
 
 type StationWorkerConfig struct {
-	ValidColumnsIndexes     stationValidColumns                                `yaml:"valid_columns"`
-	ExchangesConfig         map[string]communication.ExchangeDeclarationConfig `yaml:"exchanges"`
-	EOFQueueConfig          communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
-	FinishProcessingMessage string
-	City                    string
-	ID                      int
+	ValidColumnsIndexes stationValidColumns                                `yaml:"valid_columns"`
+	ExchangesConfig     map[string]communication.ExchangeDeclarationConfig `yaml:"exchanges"`
+	EOFQueueConfig      communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
+	IncludeYears        []int                                              `yaml:"include_years"`
+	IncludeCities       []string                                           `yaml:"include_cities"`
+	DataDelimiter       string                                             `yaml:"data_delimiter"`
+	DataFieldDelimiter  string                                             `yaml:"data_field_delimiter"`
+	EndBatchMarker      string                                             `yaml:"end_batch_marker"`
+	City                string
+	ID                  int
 }
 
 func LoadConfig() (*StationWorkerConfig, error) {
