@@ -2,14 +2,21 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"regexp"
 	"time"
 	"tp1/communication"
+	"tp1/domain/entities"
+	eofEntity "tp1/domain/entities/eof"
+	"tp1/utils"
 )
 
-const eofQueue = "eof-queue"
+const (
+	eofQueue        = "eof-queue"
+	contentTypeJson = "application/json"
+)
 
 type eofConfig struct {
 	Counters  map[string]map[string]int `yaml:"counters"`
@@ -109,29 +116,34 @@ func (eof *EOFManager) StartManaging() {
 
 		log.Debugf("[EOF Manager] start consuming messages")
 		for message := range consumer {
-			eofMessage := string(message.Body)
-			log.Debugf("LICHITA llego este EOF: %s", eofMessage)
-			eofComponents := getEOFComponents(eofMessage)
+			var eofData eofEntity.EOFData
+			err = json.Unmarshal(message.Body, &eofData)
+			if err != nil {
+				panic(fmt.Sprintf("[EOF Manager] error unmarshalling EOF Data: %s", err.Error()))
+			}
+			eofMetadata := eofData.GetMetadata()
+			stage := eofMetadata.GetType()
+			city := eofMetadata.GetCity()
+			log.Debugf("LICHITA llego este EOF: %s", eofMetadata.GetMessage())
 
-			actualValue, ok := eof.config.Counters[eofComponents.Stage][eofComponents.City]
+			actualValue, ok := eof.config.Counters[stage][city]
 			if !ok {
-				panic(fmt.Sprintf("[EOF Manager] cannot found pair %s-%s", eofComponents.Stage, eofComponents.City))
+				panic(fmt.Sprintf("[EOF Manager] cannot found pair %s-%s", stage, city))
 			}
 
 			updatedValue := actualValue - 1
-			log.Debugf("UPDATED VALUE %s: %v", eofMessage, updatedValue)
+			log.Debugf("UPDATED VALUE %s: %v", eofMetadata.GetMessage(), updatedValue)
 			if updatedValue < 0 {
-				panic(fmt.Sprintf("[EOF Manager] received more EOF than expected for pair %s-%s", eofComponents.Stage, eofComponents.City))
+				panic(fmt.Sprintf("[EOF Manager] received more EOF than expected for pair %s-%s", stage, city))
 			}
 
-			eof.config.Counters[eofComponents.Stage][eofComponents.City] = updatedValue
+			eof.config.Counters[stage][city] = updatedValue
 			if updatedValue == 0 {
-				err = eof.sendStartProcessingMessage(ctx, eofComponents)
+				err = eof.sendStartProcessingMessage(ctx, eofMetadata)
 				if err != nil {
 					panic(err.Error())
 				}
 			}
-
 		}
 	}()
 
@@ -139,15 +151,23 @@ func (eof *EOFManager) StartManaging() {
 	log.Errorf("[EOF Manager] got some error handling EOFs: %s", err.Error())
 }
 
-func (eof *EOFManager) sendStartProcessingMessage(ctx context.Context, eofComponents EOFMessageComponents) error {
-	targetExchanges, ok := eof.config.Responses[eofComponents.Stage]
+func (eof *EOFManager) sendStartProcessingMessage(ctx context.Context, eofMetadata entities.Metadata) error {
+	targetExchanges, ok := eof.config.Responses[eofMetadata.GetType()]
 	if !ok {
-		panic(fmt.Sprintf("[EOF Manager] cannot found exchange to send response for key %s", eofComponents.Stage))
+		panic(fmt.Sprintf("[EOF Manager] cannot found exchange to send response for key %s", eofMetadata.GetType()))
 	}
-	routingKey := fmt.Sprintf("eof.%s.%s", eofComponents.Stage, eofComponents.City) // ToDo: potential bug. Here we have to write the eof that the next stage needs. E.g: eof.rainjoiner.city
-	message := []byte(routingKey)
+
 	for _, exchange := range targetExchanges {
-		err := eof.rabbitMQ.PublishMessageInExchange(ctx, exchange, routingKey, message, "text/plain")
+		targetStage := utils.GetTargetStage(exchange)                              // from the exchange name we get the target (stage N) to send the EOF of stage N - 1
+		routingKey := fmt.Sprintf("eof.%s.%s", targetStage, eofMetadata.GetCity()) // were I want to send the EOF message
+
+		eofMessage := eofEntity.NewEOF(eofMetadata.GetCity(), eofMetadata.GetMessage()) // eg message: eof.weather.montreal
+		eofMessageBytes, err := json.Marshal(eofMessage)
+		if err != nil {
+			panic(fmt.Sprintf("[EOF Manager] error marshalling EOF message to send, routing key %s: %s", routingKey, err.Error()))
+		}
+
+		err = eof.rabbitMQ.PublishMessageInExchange(ctx, exchange, routingKey, eofMessageBytes, contentTypeJson)
 		if err != nil {
 			log.Errorf("[EOF Manager] error publishing message in exchange %s", exchange)
 			return err

@@ -2,20 +2,20 @@ package eof
 
 import "tp1/domain/entities"
 
-// EOF struct that it's send by the EOF Manager. Has two attributes that are in all domain entities.
-// + Metadata: metadata added to the structure
 const eofType = "EOF"
 
-type EOF struct {
+// EOFData struct that it's send by the EOF Manager. Has two attributes that are in all domain entities.
+// + Metadata: metadata added to the structure
+type EOFData struct {
 	Metadata entities.Metadata `json:"metadata"`
 }
 
-func NewEOF(city string, eofMessage string) *EOF {
-	return &EOF{
+func NewEOF(city string, eofMessage string) *EOFData {
+	return &EOFData{
 		Metadata: entities.NewMetadata(city, eofType, eofMessage),
 	}
 }
 
-func (eof EOF) GetMetadata() entities.Metadata {
+func (eof EOFData) GetMetadata() entities.Metadata {
 	return eof.Metadata
 }
