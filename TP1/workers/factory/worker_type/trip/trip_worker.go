@@ -53,7 +53,7 @@ func (tw *TripWorker) GetType() string {
 func (tw *TripWorker) GetRoutingKeys() []string {
 	return []string{
 		fmt.Sprintf("%s.%s.%v", tripStr, tw.config.City, tw.GetID()), // input routing key: trips.city.workerID
-		fmt.Sprintf("eof.%s.%s", tripStr, tw.config.City),            //eof.trips.city
+		fmt.Sprintf("eof.%s.%s", tripStr, tw.config.City),            // eof.trips.city
 	}
 }
 

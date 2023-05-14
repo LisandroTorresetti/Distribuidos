@@ -11,30 +11,33 @@ import (
 	"time"
 	"tp1/communication"
 	"tp1/domain/entities/station"
+	"tp1/utils"
 	dataErrors "tp1/workers/factory/worker_type/errors"
 	"tp1/workers/factory/worker_type/station/config"
 )
 
 const (
-	dateLayout        = "2006-01-02"
-	latitudeBound     = 90
-	longitudeBound    = 180
-	stationWorkerType = "station-worker"
-	stationStr        = "stations"
-	exchangeInput     = "exchange_input_"
+	dateLayout           = "2006-01-02"
+	latitudeBound        = 90
+	longitudeBound       = 180
+	stationWorkerType    = "stations-worker"
+	stationStr           = "stations"
+	exchangeInput        = "exchange_input_"
+	exchangeOutput       = "exchange_output_"
+	outputTarget         = "output"
+	contentTypeJson      = "application/json"
+	contentTypePlainText = "text/plain"
 )
 
 type StationWorker struct {
-	rabbitMQ  *communication.RabbitMQ
-	config    *config.StationWorkerConfig
-	delimiter string
+	rabbitMQ *communication.RabbitMQ
+	config   *config.StationWorkerConfig
 }
 
 func NewStationWorker(stationWorkerConfig *config.StationWorkerConfig, rabbitMQ *communication.RabbitMQ) *StationWorker {
 	return &StationWorker{
-		delimiter: ",",
-		rabbitMQ:  rabbitMQ,
-		config:    stationWorkerConfig,
+		rabbitMQ: rabbitMQ,
+		config:   stationWorkerConfig,
 	}
 }
 
@@ -52,48 +55,33 @@ func (sw *StationWorker) GetType() string {
 func (sw *StationWorker) GetRoutingKeys() []string {
 	return []string{
 		fmt.Sprintf("%s.%s.%v", stationStr, sw.config.City, sw.GetID()), // input routing key: stations.city.workerID
-		fmt.Sprintf("%s.eof", stationStr),                               //weather.eof
+		fmt.Sprintf("eof.%s.%s", stationStr, sw.config.City),            // eof.stations.city
 	}
 }
 
 // GetEOFString returns the Station Worker expected EOF String
 func (sw *StationWorker) GetEOFString() string {
-	return stationStr + "-PONG"
-}
-
-// GetEOFMessageTuned returns an EOF message with the following structure: eof.stations.city.workerID
-// Possible values for city: washington, toronto, montreal
-func (sw *StationWorker) GetEOFMessageTuned() string {
-	return fmt.Sprintf("eof.%s.%s.%v", stationStr, sw.config.City, sw.GetID())
+	return fmt.Sprintf("eof.%s.%s", stationStr, sw.config.City)
 }
 
 // DeclareQueues declares non-anonymous queues for Station Worker
-// Queues: EOF queue
 func (sw *StationWorker) DeclareQueues() error {
-	var queues []communication.QueueDeclarationConfig
-	for key, rabbitConfig := range sw.config.RabbitMQConfig[stationStr] {
-		if strings.Contains(key, "queue") {
-			queues = append(queues, rabbitConfig.QueueDeclarationConfig)
-		}
-	}
-
-	err := sw.rabbitMQ.DeclareNonAnonymousQueues(queues)
+	err := sw.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{sw.config.EOFQueueConfig})
 	if err != nil {
 		return err
 	}
 
-	log.Infof("[worker: %s][workerID: %v][status: OK] queues declared correctly!", stationWorkerType, sw.GetID())
+	log.Infof("[worker: %s][workerID: %v][status: OK] queues declared correctly!", stationStr, sw.GetID())
 	return nil
+
 }
 
 // DeclareExchanges declares exchanges for Station Worker
-// Exchanges: weather_topic, rain_accumulator_topic
+// Exchanges: stations-topic, stations-yearjoiner-topic, stations-montrealjoiner-topic
 func (sw *StationWorker) DeclareExchanges() error {
 	var exchanges []communication.ExchangeDeclarationConfig
-	for key, rabbitConfig := range sw.config.RabbitMQConfig[stationStr] {
-		if strings.Contains(key, "exchange") {
-			exchanges = append(exchanges, rabbitConfig.ExchangeDeclarationConfig)
-		}
+	for _, exchange := range sw.config.ExchangesConfig {
+		exchanges = append(exchanges, exchange)
 	}
 
 	err := sw.rabbitMQ.DeclareExchanges(exchanges)
@@ -101,13 +89,13 @@ func (sw *StationWorker) DeclareExchanges() error {
 		return err
 	}
 
-	log.Infof("[worker: %s][workerID: %v][status: OK] exchanges declared correctly!", stationWorkerType, sw.GetID())
+	log.Infof("[worker: %s][workerID: %v][status: OK] exchanges declared correctly!", stationStr, sw.GetID())
 	return nil
 }
 
 // ProcessInputMessages process all messages that Station Worker receives
 func (sw *StationWorker) ProcessInputMessages() error {
-	exchangeName := exchangeInput + stationStr
+	exchangeName := sw.config.ExchangesConfig[exchangeInput+stationStr].Name // input exchange
 	routingKeys := sw.GetRoutingKeys()
 
 	consumer, err := sw.rabbitMQ.GetExchangeConsumer(exchangeName, routingKeys)
@@ -118,16 +106,15 @@ func (sw *StationWorker) ProcessInputMessages() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	log.Debugf("[worker: %s][workerID: %v][status: OK]start consuming messages", stationWorkerType, sw.GetID())
+	log.Infof("[worker: %s][workerID: %v][status: OK]start consuming messages", stationWorkerType, sw.GetID())
 	eofString := sw.GetEOFString()
 
 	for message := range consumer {
 		msg := string(message.Body)
 		if msg == eofString {
-			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received", stationWorkerType, sw.GetID())
-			targetQueue := fmt.Sprintf("%s.eof.manager", stationStr) // ToDo: create a better string if its necessary
-			eofMessage := []byte(sw.GetEOFMessageTuned())
-			err = sw.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, eofMessage, "text/plain")
+			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", stationWorkerType, sw.GetID(), eofString)
+			eofMessage := []byte(eofString)
+			err = sw.rabbitMQ.PublishMessageInQueue(ctx, sw.config.EOFQueueConfig.Name, eofMessage, contentTypePlainText)
 
 			if err != nil {
 				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing EOF message: %s", stationWorkerType, sw.GetID(), err.Error())
@@ -143,6 +130,7 @@ func (sw *StationWorker) ProcessInputMessages() error {
 		}
 	}
 
+	log.Infof("[worker: %s][workerID: %v][status: OK] all data were processed", stationWorkerType, sw.GetID())
 	return nil
 }
 
@@ -150,55 +138,52 @@ func (sw *StationWorker) Kill() error {
 	return sw.rabbitMQ.KillBadBunny()
 }
 
-// processData data is a string with the following format:
-// weather,city,data1_1,data1_2,...,data1_N|weather,city,data2_1,data2_2...,data2_N|PING
+// processData dataChunk is a string with the following format:
+// stations,city,data1_1,data1_2,...,data1_N|stations,city,data2_1,data2_2...,data2_N|PING
 // Only valid data from the received batch is sent to the next stage
 func (sw *StationWorker) processData(ctx context.Context, dataChunk string) error {
-	dataSplit := strings.Split(dataChunk, "|")
-	var dataToSend []*station.StationData
-	for _, data := range dataSplit {
-		if strings.Contains(data, "PING") {
-			log.Debug("bypassing PING")
-			continue
-		}
-
-		weatherData, err := sw.getStationData(data)
-		if err != nil {
-			if errors.Is(err, dataErrors.ErrInvalidWeatherData) {
-				continue
-			}
-			return err
-		}
-
-		if sw.isValid(weatherData) {
-			weatherData.City = sw.config.City
-			weatherData.Type = stationStr
-			dataToSend = append(dataToSend, weatherData)
-		}
+	validData, err := sw.getValidDataToSend(dataChunk)
+	if err != nil {
+		return err
 	}
 
-	if len(dataToSend) <= 0 {
+	if len(validData) <= 0 {
 		return nil
 	}
 
-	dataAsBytes, err := json.Marshal(dataToSend)
+	validDataAsBytes, err := sw.marshalDataToSend(validData)
 	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshaling data: %s", stationWorkerType, sw.GetID(), err.Error())
 		return err
 	}
 
-	targetQueue := fmt.Sprintf("%s.%s.join", stationStr, sw.config.City) // ToDo: we need something when we have to publish in multiple queues, maybe an array of queue names
-	err = sw.rabbitMQ.PublishMessageInQueue(ctx, targetQueue, dataAsBytes, "application/json")
+	if utils.ContainsString(sw.config.City, sw.config.IncludeCities) {
+		err = sw.publishDataInExchange(ctx, validDataAsBytes, sw.config.ExchangesConfig[exchangeOutput+"montreal_joiner"].Name)
+		if err != nil {
+			log.Errorf("[worker: %s][workerID: %v][status: Error] error publishing data in Montreal Joiner", stationWorkerType, sw.GetID())
+			return err
+		}
+	}
 
+	validDataTuned := sw.filterDataByYears(validData) // slice with data that has a year equal to 2016 or 2017
+	if len(validDataTuned) <= 0 {
+		return nil
+	}
+
+	dataToSendByQuarterTuned, err := sw.marshalDataToSend(validDataTuned)
 	if err != nil {
-		log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing message in join queue: %s", stationWorkerType, sw.GetID(), err.Error())
 		return err
 	}
+	err = sw.publishDataInExchange(ctx, dataToSendByQuarterTuned, sw.config.ExchangesConfig[exchangeOutput+"year_joiner"].Name)
+	if err != nil {
+		log.Errorf("[worker: %s][workerID: %v][status: Error] error publishing data in Year Joiner", stationWorkerType, sw.GetID())
+		return err
+	}
+
 	return nil
 }
 
 func (sw *StationWorker) getStationData(data string) (*station.StationData, error) {
-	dataSplit := strings.Split(data, sw.delimiter)
+	dataSplit := strings.Split(data, sw.config.DataFieldDelimiter)
 
 	stationCode, err := strconv.Atoi(dataSplit[sw.config.ValidColumnsIndexes.Code])
 	if err != nil {
@@ -264,4 +249,68 @@ func (sw *StationWorker) isValid(stationData *station.StationData) bool {
 	}
 
 	return validData
+}
+
+// getValidDataToSend returns a slice with valid data to send to the next stage.
+func (sw *StationWorker) getValidDataToSend(dataChunk string) ([]*station.StationData, error) {
+	dataSplit := strings.Split(dataChunk, sw.config.DataDelimiter)
+	var validStationData []*station.StationData
+	for _, data := range dataSplit {
+		if strings.Contains(data, sw.config.EndBatchMarker) {
+			log.Debug("bypassing PING")
+			continue
+		}
+
+		stationData, err := sw.getStationData(data)
+		if err != nil {
+			if errors.Is(err, dataErrors.ErrInvalidStationData) {
+				continue
+			}
+			return nil, err
+		}
+
+		if sw.isValid(stationData) {
+			stationData.City = sw.config.City
+			stationData.Type = stationStr
+			validStationData = append(validStationData, stationData)
+		}
+	}
+
+	return validStationData, nil
+}
+
+// marshalDataToSend returns a map with the quarters that have data to send
+func (sw *StationWorker) marshalDataToSend(data []*station.StationData) ([]byte, error) {
+	dataAsBytes, err := json.Marshal(data)
+	if err != nil {
+		log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshaling data: %s", stationWorkerType, sw.GetID(), err.Error())
+		return nil, err
+	}
+	return dataAsBytes, nil
+}
+
+// publishDataInExchange publish the given chunk of data in exchangeName
+func (sw *StationWorker) publishDataInExchange(ctx context.Context, dataToSend []byte, exchangeName string) error {
+	targetStage := utils.GetTargetStage(exchangeName)
+	routingKey := fmt.Sprintf("%s.%s", targetStage, sw.config.City) // OBS: it has a difference with the other workers, here we only need the next stage and the city
+	err := sw.rabbitMQ.PublishMessageInExchange(ctx, exchangeName, routingKey, dataToSend, contentTypeJson)
+
+	if err != nil {
+		log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing message in join exchange %s: %s", stationWorkerType, sw.GetID(), exchangeName, err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// filterDataByYears filters data that has a year that it's not part of the valid ones
+func (sw *StationWorker) filterDataByYears(originalData []*station.StationData) []*station.StationData {
+	var filteredData []*station.StationData
+	for idx := range originalData {
+		data := *originalData[idx]
+		if utils.ContainsInt(data.YearID, sw.config.IncludeYears) {
+			filteredData = append(filteredData, &data)
+		}
+	}
+	return filteredData
 }
