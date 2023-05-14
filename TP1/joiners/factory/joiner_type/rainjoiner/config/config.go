@@ -15,6 +15,7 @@ type RainJoinerConfig struct {
 	EOFQueueConfig   communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
 	RainHandlerQueue communication.QueueDeclarationConfig               `yaml:"output_rain_handler_queue"`
 	InputExchanges   map[string]string                                  `yaml:"input_exchanges"`
+	EOFType          string                                             `yaml:"eof_type"`
 	City             string
 	ID               string
 }

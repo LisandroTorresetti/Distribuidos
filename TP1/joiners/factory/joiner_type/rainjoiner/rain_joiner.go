@@ -212,20 +212,31 @@ func (rj *RainJoiner) saveWeatherData() error {
 	eofWeatherString := rj.GetExpectedEOFString(weatherStr)
 
 	for message := range consumer {
-		var weatherData weather.WeatherData
-		err = json.Unmarshal(message.Body, &weatherData)
+		// OBS: we use the benefit of Unmarshal. Here we can receive WeatherData or EOF, we know what type is based on the Metadata attribute
+		var data weather.WeatherData
+		err = json.Unmarshal(message.Body, &data)
 		if err != nil {
 			log.Error(rj.getLogMessage("saveWeatherData", "error unmarshalling data", ErrUnmarshallingWeatherData))
 			return err
 		}
 
-		if weatherData.EOF == eofWeatherString {
-			log.Info(rj.getLogMessage("saveWeatherData", fmt.Sprintf("EOF received: %s", eofWeatherString), nil))
+		metadata := data.GetMetadata()
+
+		if metadata.GetType() == rj.config.EOFType {
+			// sanity checks
+			if metadata.GetCity() != rj.GetCity() {
+				panic(fmt.Sprintf("received an EOF message with of another city: Expected: %s - Got: %s", rj.GetCity(), metadata.GetCity()))
+			}
+			if metadata.GetMessage() != eofWeatherString {
+				panic(fmt.Sprintf("received an EOF message with an invalid format: Expected: %s - Got: %s", eofWeatherString, metadata.GetMessage()))
+			}
+
+			log.Info(rj.getLogMessage("saveWeatherData", fmt.Sprintf("EOF received: %s", metadata.GetMessage()), nil))
 			break
 		}
 
-		log.Debug(rj.getLogMessage("saveWeatherData", fmt.Sprintf("received weather data %+v", weatherData), nil))
-		rj.dateSet.Add(weatherData.Date)
+		log.Debug(rj.getLogMessage("saveWeatherData", fmt.Sprintf("received weather data %+v", data), nil))
+		rj.dateSet.Add(data.Date)
 	}
 
 	log.Info(rj.getLogMessage("saveWeatherData", "all weather data was saved!", nil))
@@ -251,8 +262,18 @@ func (rj *RainJoiner) processTripData() error {
 			return err
 		}
 
-		if tripData.EOF == eofTripsString {
-			log.Info(rj.getLogMessage("processTripData", fmt.Sprintf("EOF received: %s", eofTripsString), nil))
+		metadata := tripData.GetMetadata()
+
+		if metadata.GetType() == rj.config.EOFType {
+			// sanity checks
+			if metadata.GetCity() != rj.GetCity() {
+				panic(fmt.Sprintf("received an EOF message with of another city: Expected: %s - Got: %s", rj.GetCity(), metadata.GetCity()))
+			}
+			if metadata.GetMessage() != eofTripsString {
+				panic(fmt.Sprintf("received an EOF message with an invalid format: Expected: %s - Got: %s", eofTripsString, metadata.GetMessage()))
+			}
+
+			log.Info(rj.getLogMessage("saveWeatherData", fmt.Sprintf("EOF received: %s", metadata.GetMessage()), nil))
 			break
 		}
 

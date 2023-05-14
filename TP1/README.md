@@ -19,6 +19,8 @@ Me gusta pensarlo como 'eu, avisale a la etapa X que ya recibió todos los datos
 
 ### EOF Manager
 
+**OBS:** recibe strings, devuelve el struct correspondiente con algún valor seteado en el field **EOF**
+
 Tendrá un tipo de 'contador' para saber cuántos EOFs espera de alguna etapa en particular. Cada etapa está compuesta por ciudades, esto nos va a permitir que las cantidades de nodos para cada ciudad puedan ser distintas si es que queremos eso.
 
 Va a tener una única cola de acceso, la cual se va a llamar `eof-queue`. Esta cola va a recibir los distintos _eof_ que pueden venir del sistema y dado que la estructura es conocida, va a saber a que contador le tiene que actualizar el valor.
