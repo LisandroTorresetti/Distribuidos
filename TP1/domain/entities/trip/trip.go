@@ -11,6 +11,7 @@ import "time"
 // + EndStationCode: station ID in which the trip ends
 // + Duration: duration of the trip
 // + YearID: year of the trip
+// + EOF: when this field is set, all the others have a zero-value. This field it's to indicate that all trips data was processed
 type TripData struct {
 	City             string    `json:"city"`
 	Type             string    `json:"type"`
@@ -20,4 +21,5 @@ type TripData struct {
 	EndStationCode   int       `json:"end_station_code"`
 	Duration         float64   `json:"duration"`
 	YearID           int       `json:"year_id"`
+	EOF              string    `json:"eof"`
 }

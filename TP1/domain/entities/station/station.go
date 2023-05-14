@@ -8,6 +8,7 @@ package station
 // + Latitude: latitude of the station
 // + Longitude: longitude of the station
 // + YearID: year in which the station begins to operate
+// + EOF: when this field is set, all the others have a zero-value. This field it's to indicate that all stations data was processed
 type StationData struct {
 	City      string  `json:"city"`
 	Type      string  `json:"type"`
@@ -16,4 +17,5 @@ type StationData struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 	YearID    int     `json:"year_id"`
+	EOF       string  `json:"eof"`
 }
