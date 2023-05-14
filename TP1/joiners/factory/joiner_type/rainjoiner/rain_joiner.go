@@ -186,6 +186,10 @@ func (rj *RainJoiner) SendEOF() error {
 	return nil
 }
 
+func (rj *RainJoiner) Kill() error {
+	return rj.rabbitMQ.KillBadBunny()
+}
+
 func (rj *RainJoiner) getConsumer(targetExchange string) (<-chan amqp091.Delivery, error) {
 	exchangeName, ok := rj.config.InputExchanges[targetExchange]
 	if !ok {
