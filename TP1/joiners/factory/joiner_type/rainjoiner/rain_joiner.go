@@ -81,7 +81,7 @@ func (rj *RainJoiner) GetEOFString() string {
 
 // GetExpectedEOFString returns Rain Joiner's expected EOF
 func (rj *RainJoiner) GetExpectedEOFString(data string) string {
-	return fmt.Sprintf("eof.%s.%s.%s", data, rainJoinerStr, rj.config.City)
+	return fmt.Sprintf("eof.%s.%s", data, rj.config.City)
 }
 
 // DeclareQueues declares non-anonymous queues for Rain Joiner
