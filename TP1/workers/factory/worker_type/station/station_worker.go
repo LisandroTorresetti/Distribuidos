@@ -11,6 +11,7 @@ import (
 	"time"
 	"tp1/communication"
 	"tp1/domain/entities"
+	"tp1/domain/entities/eof"
 	"tp1/domain/entities/station"
 	"tp1/utils"
 	dataErrors "tp1/workers/factory/worker_type/errors"
@@ -18,16 +19,15 @@ import (
 )
 
 const (
-	dateLayout           = "2006-01-02"
-	latitudeBound        = 90
-	longitudeBound       = 180
-	stationWorkerType    = "stations-worker"
-	stationStr           = "stations"
-	exchangeInput        = "exchange_input_"
-	exchangeOutput       = "exchange_output_"
-	outputTarget         = "output"
-	contentTypeJson      = "application/json"
-	contentTypePlainText = "text/plain"
+	dateLayout        = "2006-01-02"
+	latitudeBound     = 90
+	longitudeBound    = 180
+	stationWorkerType = "stations-worker"
+	stationStr        = "stations"
+	exchangeInput     = "exchange_input_"
+	exchangeOutput    = "exchange_output_"
+	outputTarget      = "output"
+	contentTypeJson   = "application/json"
 )
 
 type StationWorker struct {
@@ -114,8 +114,13 @@ func (sw *StationWorker) ProcessInputMessages() error {
 		msg := string(message.Body)
 		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", stationWorkerType, sw.GetID(), eofString)
-			eofMessage := []byte(eofString)
-			err = sw.rabbitMQ.PublishMessageInQueue(ctx, sw.config.EOFQueueConfig.Name, eofMessage, contentTypePlainText)
+			eofData := eof.NewEOF(sw.config.City, eofString)
+			eofBytes, err := json.Marshal(eofData)
+			if err != nil {
+				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshalling EOF message: %s", stationWorkerType, sw.GetID(), err.Error())
+				return err
+			}
+			err = sw.rabbitMQ.PublishMessageInQueue(ctx, sw.config.EOFQueueConfig.Name, eofBytes, contentTypeJson)
 
 			if err != nil {
 				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing EOF message: %s", stationWorkerType, sw.GetID(), err.Error())

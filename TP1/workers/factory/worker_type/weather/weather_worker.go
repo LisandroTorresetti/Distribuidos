@@ -11,6 +11,7 @@ import (
 	"time"
 	"tp1/communication"
 	"tp1/domain/entities"
+	"tp1/domain/entities/eof"
 	"tp1/domain/entities/weather"
 	"tp1/utils"
 	dataErrors "tp1/workers/factory/worker_type/errors"
@@ -18,13 +19,12 @@ import (
 )
 
 const (
-	dateLayout           = "2006-01-02"
-	weatherWorkerType    = "weather-worker"
-	weatherStr           = "weather"
-	exchangeInput        = "exchange_input_"
-	outputTarget         = "output"
-	contentTypeJson      = "application/json"
-	contentTypePlainText = "text/plain"
+	dateLayout        = "2006-01-02"
+	weatherWorkerType = "weather-worker"
+	weatherStr        = "weather"
+	exchangeInput     = "exchange_input_"
+	outputTarget      = "output"
+	contentTypeJson   = "application/json"
 )
 
 type WeatherWorker struct {
@@ -112,8 +112,13 @@ func (ww *WeatherWorker) ProcessInputMessages() error {
 		msg := string(message.Body)
 		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", weatherWorkerType, ww.GetID(), eofString)
-			eofMessage := []byte(eofString)
-			err = ww.rabbitMQ.PublishMessageInQueue(ctx, ww.config.EOFQueueConfig.Name, eofMessage, contentTypePlainText)
+			eofData := eof.NewEOF(ww.config.City, eofString)
+			eofBytes, err := json.Marshal(eofData)
+			if err != nil {
+				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshalling EOF message: %s", weatherWorkerType, ww.GetID(), err.Error())
+				return err
+			}
+			err = ww.rabbitMQ.PublishMessageInQueue(ctx, ww.config.EOFQueueConfig.Name, eofBytes, contentTypeJson)
 
 			if err != nil {
 				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing EOF message: %s", weatherWorkerType, ww.GetID(), err.Error())

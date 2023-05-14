@@ -11,6 +11,7 @@ import (
 	"time"
 	"tp1/communication"
 	"tp1/domain/entities"
+	"tp1/domain/entities/eof"
 	"tp1/domain/entities/trip"
 	"tp1/utils"
 	dataErrors "tp1/workers/factory/worker_type/errors"
@@ -18,14 +19,13 @@ import (
 )
 
 const (
-	dateLayout           = "2006-01-02"
-	tripWorkerType       = "trips-worker"
-	tripStr              = "trips"
-	exchangeInput        = "exchange_input_"
-	exchangeOutput       = "exchange_output_"
-	outputTarget         = "output"
-	contentTypeJson      = "application/json"
-	contentTypePlainText = "text/plain"
+	dateLayout      = "2006-01-02"
+	tripWorkerType  = "trips-worker"
+	tripStr         = "trips"
+	exchangeInput   = "exchange_input_"
+	exchangeOutput  = "exchange_output_"
+	outputTarget    = "output"
+	contentTypeJson = "application/json"
 )
 
 type TripWorker struct {
@@ -112,8 +112,13 @@ func (tw *TripWorker) ProcessInputMessages() error {
 		msg := string(message.Body)
 		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", tripWorkerType, tw.GetID(), eofString)
-			eofMessage := []byte(eofString)
-			err = tw.rabbitMQ.PublishMessageInQueue(ctx, tw.config.EOFQueueConfig.Name, eofMessage, contentTypePlainText)
+			eofData := eof.NewEOF(tw.config.City, eofString)
+			eofBytes, err := json.Marshal(eofData)
+			if err != nil {
+				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshalling EOF message: %s", tripWorkerType, tw.GetID(), err.Error())
+				return err
+			}
+			err = tw.rabbitMQ.PublishMessageInQueue(ctx, tw.config.EOFQueueConfig.Name, eofBytes, contentTypeJson)
 
 			if err != nil {
 				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error publishing EOF message: %s", tripWorkerType, tw.GetID(), err.Error())
