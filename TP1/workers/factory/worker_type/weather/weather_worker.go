@@ -238,8 +238,9 @@ func (ww *WeatherWorker) marshalDataToSend(data map[string][]*weather.WeatherDat
 
 // publishData publishes data in all output exchanges related with the Weather Worker
 func (ww *WeatherWorker) publishData(ctx context.Context, dataToSendMap map[string][]byte) error {
-	for exchangeName, _ := range ww.config.ExchangesConfig {
-		if strings.Contains(exchangeName, outputTarget) {
+	for key, exchangeConfig := range ww.config.ExchangesConfig {
+		if strings.Contains(key, outputTarget) {
+			exchangeName := exchangeConfig.Name
 			targetStage := utils.GetTargetStage(exchangeName)
 			for quarterID, dataToSend := range dataToSendMap {
 				routingKey := fmt.Sprintf("%s.%s.%s", targetStage, ww.config.City, quarterID)

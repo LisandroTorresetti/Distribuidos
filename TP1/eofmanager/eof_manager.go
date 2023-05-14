@@ -98,7 +98,6 @@ func (eof *EOFManager) DeclareExchanges() error {
 func (eof *EOFManager) StartManaging() {
 	infinite := make(chan error, 1)
 
-	// weather filter handler
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -111,6 +110,7 @@ func (eof *EOFManager) StartManaging() {
 		log.Debugf("[EOF Manager] start consuming messages")
 		for message := range consumer {
 			eofMessage := string(message.Body)
+			log.Debugf("LICHITA llego este EOF: %s", eofMessage)
 			eofComponents := getEOFComponents(eofMessage)
 
 			actualValue, ok := eof.config.Counters[eofComponents.Stage][eofComponents.City]
@@ -119,6 +119,7 @@ func (eof *EOFManager) StartManaging() {
 			}
 
 			updatedValue := actualValue - 1
+			log.Debugf("UPDATED VALUE %s: %v", eofMessage, updatedValue)
 			if updatedValue < 0 {
 				panic(fmt.Sprintf("[EOF Manager] received more EOF than expected for pair %s-%s", eofComponents.Stage, eofComponents.City))
 			}
@@ -143,7 +144,7 @@ func (eof *EOFManager) sendStartProcessingMessage(ctx context.Context, eofCompon
 	if !ok {
 		panic(fmt.Sprintf("[EOF Manager] cannot found exchange to send response for key %s", eofComponents.Stage))
 	}
-	routingKey := fmt.Sprintf("eof.%s.%s", eofComponents.Stage, eofComponents.City) // ToDo: potential bug. Licha
+	routingKey := fmt.Sprintf("eof.%s.%s", eofComponents.Stage, eofComponents.City) // ToDo: potential bug. Here we have to write the eof that the next stage needs. E.g: eof.rainjoiner.city
 	message := []byte(routingKey)
 	for _, exchange := range targetExchanges {
 		err := eof.rabbitMQ.PublishMessageInExchange(ctx, exchange, routingKey, message, "text/plain")

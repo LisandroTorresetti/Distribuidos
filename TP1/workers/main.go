@@ -54,11 +54,11 @@ func main() {
 		}
 	}(worker)
 
-	err = worker.DeclareQueues()
+	/*err = worker.DeclareQueues()
 	if err != nil {
 		log.Debugf("[worker: %s][workerID: %v] %s", worker.GetType(), worker.GetID(), err.Error())
 		return
-	}
+	}*/
 
 	err = worker.DeclareExchanges()
 	if err != nil {

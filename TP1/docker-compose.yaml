@@ -6,12 +6,19 @@ services:
     entrypoint: ./main
     environment:
       - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
     networks:
       - bikers
     depends_on:
       rabbit:
         condition: service_healthy
       eof_manager:
+        condition: service_started
+      sw_montreal_1:
+        condition: service_started
+      tw_montreal_1:
+        condition: service_started
+      ww_montreal_1:
         condition: service_started
 
   client:
@@ -35,14 +42,15 @@ services:
     entrypoint: ./main
     environment:
       - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
     networks:
       - bikers
     depends_on:
       rabbit:
         condition: service_healthy
 
-  worker:
-    container_name: worker
+  ww_montreal_1:
+    container_name: ww_montreal_1
     image: workers:latest
     entrypoint: ./main
     environment:
@@ -50,12 +58,28 @@ services:
       - CITY=montreal
       - WORKER_TYPE=weather-worker
       - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
     networks:
       - bikers
     depends_on:
       - eof_manager
       - rabbit
-      - server
+
+  tw_montreal_1:
+    container_name: tw_montreal_1
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=1
+      - CITY=montreal
+      - WORKER_TYPE=trips-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
 
   rabbit:
     container_name: rabbit

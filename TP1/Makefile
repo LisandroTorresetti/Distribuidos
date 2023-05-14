@@ -17,10 +17,9 @@ stop-app:
 .PHONY: stop-app
 
 delete-app: stop-app
-	echo "te estas portando mal seras castigado"
 	docker-compose -f docker-compose.yaml down
+	echo "TE ESTAS PORTANDO MAL SERAS CASTIGADO"
 .PHONY: delete-app
-
 
 logs:
 	docker-compose -f docker-compose.yaml logs -f
