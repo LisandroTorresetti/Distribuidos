@@ -1,0 +1,35 @@
+exchanges:
+  exchange_input_weather_rain_joiner: # messages from Weather Worker to Rain Joiner
+    name: "weather-rainjoiner-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
+
+  exchange_input_trips_rain_joiner: # messages from Trip Worker to Rain Joiner
+    name: "trips-rainjoiner-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
+
+input_exchanges:
+  trips: "trips-rainjoiner-topic"
+  weather: "weather-rainjoiner-topic"
+
+
+eof_queue_config: # queue of the eof manager
+  name: "eof-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
+
+output_rain_handler_queue: # messages from Rain Joiner to Rain Handler
+  name: "rainjoiner-rainhandler-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
