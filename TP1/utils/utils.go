@@ -11,6 +11,15 @@ func ContainsString(targetString string, sliceOfStrings []string) bool {
 	return false
 }
 
+func ContainsInt(targetInt int, sliceOfInts []int) bool {
+	for i := range sliceOfInts {
+		if sliceOfInts[i] == targetInt {
+			return true
+		}
+	}
+	return false
+}
+
 func GetRandomID() int {
 	/*// initialize the random number generator
 	rand.Seed(time.Now().UnixNano())

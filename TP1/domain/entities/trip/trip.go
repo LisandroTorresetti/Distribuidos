@@ -2,7 +2,15 @@ package trip
 
 import "time"
 
-// TripData struct that contains the weather field to analyze
+// TripData struct that contains the trip data
+// + City: city which belongs the data
+// + Type: this field helps us to recognize in different stages what type of data is, in this case the value will always be 'trips'
+// + StartDate: date in which the trip begins
+// + StartStationCode: station ID in which the trip begins
+// + EndDate: date in which the trip ends
+// + EndStationCode: station ID in which the trip ends
+// + Duration: duration of the trip
+// + YearID: year of the trip
 type TripData struct {
 	City             string    `json:"city"`
 	Type             string    `json:"type"`

@@ -36,7 +36,7 @@ Están en todos lados, la idea principal es que entre diferentes etapas se comun
 Por ej:
 
 + `weather-rainjoiner-topic`
-+ `trips-duplicatejoiner-topic`
++ `trips-yearjoiner-topic`
 + `stations-montrealjoiner-topic`
 
 

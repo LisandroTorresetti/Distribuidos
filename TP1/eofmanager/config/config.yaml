@@ -4,6 +4,11 @@ counters:
     washington: 1
     toronto: 1
 
+  trips:
+    montreal: 1
+    washington: 1
+    toronto: 1
+
   stations:
     montreal: 1
     washington: 1
@@ -14,7 +19,7 @@ counters:
     washington: 1
     toronto: 1
 
-  duplicatejoiner:
+  yearjoiner:
     montreal: 1
     washington: 1
     toronto: 1
@@ -23,9 +28,9 @@ counters:
     montreal: 1
 
 responses:
-  weather: ["weather-rain-joiner-topic"]
-
-  stations: ["stations-montreal-joiner-topic", "stations-duplicate-joiner-topic"]
+  weather: ["weather-rainjoiner-topic"]
+  trips: ["trips-rainjoiner-topic", "trips-montrealjoiner-topic", "trips-yearjoiner-topic"]
+  stations: ["stations-montrealjoiner-topic", "stations-yearjoiner-topic"]
 
 eof_queue_config:
   name: "eof-queue"
@@ -35,8 +40,8 @@ eof_queue_config:
   no_wait: false
 
 exchanges:
-  - weather-rain-joiner-topic
-  - stations-montreal-joiner-topic
-  - stations-duplicate-joiner-topic
+  - weather-rainjoiner-topic
+  - stations-montrealjoiner-topic
+  - stations-yearjoiner-topic
 
 # ToDo: declare the rest of the exchanges and queues
