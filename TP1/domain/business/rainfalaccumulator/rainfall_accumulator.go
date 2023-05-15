@@ -2,7 +2,10 @@ package rainfalaccumulator
 
 import "tp1/domain/entities"
 
-// RainfallAccumulator structure used at stage of joining data from weather and trips
+// RainfallAccumulator struct that collects data about the total duration of rides in a given date with precipitations.
+// + Metadata: metadata added to the structure
+// + Counter: counts the amount of data collected
+// + TotalDuration: sum of durations of rides
 type RainfallAccumulator struct {
 	Metadata      entities.Metadata `json:"metadata"`
 	Counter       int               `json:"counter"`
@@ -24,4 +27,11 @@ func (ra *RainfallAccumulator) SetDuration(duration float64) {
 
 func (ra *RainfallAccumulator) SetCounter(counter int) {
 	ra.Counter = counter
+}
+
+func (ra *RainfallAccumulator) GetAverageDuration() float64 {
+	if ra.Counter == 0 {
+		panic("[RainfallAccumulator] cannot get average duration, counter is zero")
+	}
+	return ra.TotalDuration / float64(ra.Counter)
 }
