@@ -1,4 +1,4 @@
-package joiners
+package main
 
 import (
 	"fmt"
@@ -55,11 +55,11 @@ func main() {
 		}
 	}(joiner)
 
-	err = joiner.DeclareQueues()
+	/*err = joiner.DeclareQueues()
 	if err != nil {
 		log.Debug(getLogMessage(joiner, "error declaring queues", err))
 		return
-	}
+	}*/
 
 	err = joiner.DeclareExchanges()
 	if err != nil {
@@ -78,14 +78,14 @@ func main() {
 		log.Debug(getLogMessage(joiner, "error joining data", err))
 		return
 	}
-	log.Info(joiner, "data joined successfully", nil)
+	log.Info(getLogMessage(joiner, "data joined successfully", nil))
 
 	err = joiner.SendResult()
 	if err != nil {
 		log.Debug(getLogMessage(joiner, "error sending result", err))
 		return
 	}
-	log.Info(joiner, "data sent successfully", nil)
+	log.Info(getLogMessage(joiner, "data sent successfully", nil))
 
 	err = joiner.SendEOF()
 	if err != nil {

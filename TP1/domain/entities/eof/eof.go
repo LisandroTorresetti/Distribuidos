@@ -10,9 +10,9 @@ type EOFData struct {
 	Metadata entities.Metadata `json:"metadata"`
 }
 
-func NewEOF(city string, eofMessage string) *EOFData {
+func NewEOF(city string, stage string, eofMessage string) *EOFData {
 	return &EOFData{
-		Metadata: entities.NewMetadata(city, eofType, eofMessage),
+		Metadata: entities.NewMetadata(city, eofType, stage, eofMessage),
 	}
 }
 
