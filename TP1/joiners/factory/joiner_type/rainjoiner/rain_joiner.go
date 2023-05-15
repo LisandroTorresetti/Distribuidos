@@ -9,6 +9,7 @@ import (
 	"time"
 	"tp1/communication"
 	"tp1/domain/business/rainfalaccumulator"
+	"tp1/domain/entities"
 	"tp1/domain/entities/trip"
 	"tp1/domain/entities/weather"
 	"tp1/joiners/factory/joiner_type/rainjoiner/config"
@@ -16,30 +17,31 @@ import (
 )
 
 const (
-	rainJoinerType       = "rain-joiner"
-	rainJoinerStr        = "rainjoiner"
-	weatherStr           = "weather"
-	tripsStr             = "trips"
-	contentTypeJson      = "application/json"
-	contentTypePlainText = "text/plain"
-	exchangeInput        = "exchange_input"
+	rainJoinerType         = "rain-joiner"
+	rainJoinerStr          = "rainjoiner"
+	weatherStr             = "weather"
+	tripsStr               = "trips"
+	contentTypeJson        = "application/json"
+	contentTypePlainText   = "text/plain"
+	exchangeInput          = "exchange_input"
+	rainfallAccumulatorStr = "rainfall-accumulator"
 )
 
 type RainJoiner struct {
-	rabbitMQ *communication.RabbitMQ
-	config   *config.RainJoinerConfig
-	dateSet  utils.DateSet
-	result   map[string]*rainfalaccumulator.RainfallAccumulator
+	rabbitMQ   *communication.RabbitMQ
+	config     *config.RainJoinerConfig
+	dateSet    utils.DateSet
+	joinResult map[string]*rainfalaccumulator.RainfallAccumulator
 }
 
 func NewRainJoiner(rabbitMQ *communication.RabbitMQ, config *config.RainJoinerConfig) *RainJoiner {
 	dateSet := make(utils.DateSet)
 	result := make(map[string]*rainfalaccumulator.RainfallAccumulator)
 	return &RainJoiner{
-		rabbitMQ: rabbitMQ,
-		config:   config,
-		dateSet:  dateSet,
-		result:   result,
+		rabbitMQ:   rabbitMQ,
+		config:     config,
+		dateSet:    dateSet,
+		joinResult: result,
 	}
 }
 
@@ -158,9 +160,9 @@ func (rj *RainJoiner) SendResult() error {
 	totalCount := 0
 	var totalDuration float64
 
-	for _, rainfallAccumulator := range rj.result {
+	for _, rainfallAccumulator := range rj.joinResult {
 		totalCount += rainfallAccumulator.Counter
-		totalDuration += rainfallAccumulator.TotalDuration // because in a same date we can have multiple trips
+		totalDuration += rainfallAccumulator.TotalDuration // we want the average considering ALL trips in the given city
 	}
 
 	rainfallSummary.SetCounter(totalCount)
@@ -170,6 +172,14 @@ func (rj *RainJoiner) SendResult() error {
 		log.Error(rj.getLogMessage("SendResult", "error marshalling data", ErrMarshallingSummary))
 		return err
 	}
+
+	metadata := entities.NewMetadata(
+		rj.GetCity(),
+		rainfallAccumulatorStr,
+		rainJoinerType,
+		"",
+	)
+	rainfallSummary.Metadata = metadata
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -306,16 +316,16 @@ outerTripsLoop:
 
 			if rj.dateSet.Contains(tripData.StartDate) {
 				key := tripData.StartDate.String()
-				rainfallAccumulator, ok := rj.result[key]
+				rainfallAccumulator, ok := rj.joinResult[key]
 				if !ok {
 					newRainfallAccumulator := rainfalaccumulator.NewRainfallAccumulator()
 					newRainfallAccumulator.UpdateAccumulator(tripData.Duration)
-					rj.result[key] = newRainfallAccumulator
+					rj.joinResult[key] = newRainfallAccumulator
 					continue
 				}
 
 				rainfallAccumulator.UpdateAccumulator(tripData.Duration)
-				rj.result[key] = rainfallAccumulator
+				rj.joinResult[key] = rainfallAccumulator
 			}
 		}
 	}

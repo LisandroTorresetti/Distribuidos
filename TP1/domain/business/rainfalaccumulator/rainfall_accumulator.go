@@ -1,9 +1,12 @@
 package rainfalaccumulator
 
+import "tp1/domain/entities"
+
 // RainfallAccumulator structure used at stage of joining data from weather and trips
 type RainfallAccumulator struct {
-	Counter       int     `json:"counter"`
-	TotalDuration float64 `json:"total_duration"`
+	Metadata      entities.Metadata `json:"metadata"`
+	Counter       int               `json:"counter"`
+	TotalDuration float64           `json:"total_duration"`
 }
 
 func NewRainfallAccumulator() *RainfallAccumulator {
