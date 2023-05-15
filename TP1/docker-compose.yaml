@@ -14,11 +14,11 @@ services:
         condition: service_healthy
       eof_manager:
         condition: service_started
-      sw_montreal_1:
-        condition: service_started
       tw_montreal_1:
         condition: service_started
       ww_montreal_1:
+        condition: service_started
+      rain_joiner_montreal_1:
         condition: service_started
 
   client:
@@ -64,6 +64,7 @@ services:
     depends_on:
       - eof_manager
       - rabbit
+      - rain_joiner_montreal_1
 
   tw_montreal_1:
     container_name: tw_montreal_1
@@ -73,6 +74,23 @@ services:
       - WORKER_ID=1
       - CITY=montreal
       - WORKER_TYPE=trips-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - rain_joiner_montreal_1
+
+  rain_joiner_montreal_1:
+    container_name: rain_joiner_montreal_1
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q1
+      - CITY=montreal
+      - JOINER_TYPE=rain-joiner
       - LOG_LEVEL=DEBUG
       - RABBIT_URL=amqp://guest:guest@rabbit:5672/
     networks:
