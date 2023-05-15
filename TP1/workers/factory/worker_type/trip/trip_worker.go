@@ -22,7 +22,6 @@ const (
 	dateLayout      = "2006-01-02"
 	tripWorkerType  = "trips-worker"
 	tripStr         = "trips"
-	exchangeInput   = "exchange_input_"
 	exchangeOutput  = "exchange_output_"
 	outputTarget    = "output"
 	contentTypeJson = "application/json"
@@ -88,16 +87,19 @@ func (tw *TripWorker) DeclareExchanges() error {
 		return err
 	}
 
+	routingKeys := tw.GetRoutingKeys()
+	err = tw.rabbitMQ.Bind([]string{tw.config.InputExchange}, routingKeys)
+	if err != nil {
+		return err
+	}
+
 	log.Infof("[worker: %s][workerID: %v][status: OK] exchanges declared correctly!", tripStr, tw.GetID())
 	return nil
 }
 
 // ProcessInputMessages process all messages that Trip Worker receives
 func (tw *TripWorker) ProcessInputMessages() error {
-	exchangeName := tw.config.ExchangesConfig[exchangeInput+tripStr].Name // input exchange
-	routingKeys := tw.GetRoutingKeys()
-
-	consumer, err := tw.rabbitMQ.GetExchangeConsumer(exchangeName, routingKeys)
+	consumer, err := tw.rabbitMQ.GetConsumerForExchange(tw.config.InputExchange)
 	if err != nil {
 		return err
 	}
@@ -112,7 +114,7 @@ func (tw *TripWorker) ProcessInputMessages() error {
 		msg := string(message.Body)
 		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", tripWorkerType, tw.GetID(), eofString)
-			eofData := eof.NewEOF(tw.config.City, eofString)
+			eofData := eof.NewEOF(tw.config.City, tripWorkerType, eofString)
 			eofBytes, err := json.Marshal(eofData)
 			if err != nil {
 				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshalling EOF message: %s", tripWorkerType, tw.GetID(), err.Error())
@@ -263,7 +265,7 @@ func (tw *TripWorker) getValidDataToSend(dataChunk string) (map[string][]*trip.T
 		}
 
 		if tw.isValid(tripData) {
-			tripData.Metadata = entities.NewMetadata(tw.config.City, tripStr, "")
+			tripData.Metadata = entities.NewMetadata(tw.config.City, tripStr, tripWorkerType, "")
 			quarterID := utils.GetQuarter(int(tripData.StartDate.Month()))
 			quartersMap[quarterID] = append(quartersMap[quarterID], tripData)
 		}

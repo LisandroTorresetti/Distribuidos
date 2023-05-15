@@ -25,6 +25,7 @@ type TripWorkerConfig struct {
 	ValidColumnsIndexes tripValidColumns                                   `yaml:"valid_columns"`
 	ExchangesConfig     map[string]communication.ExchangeDeclarationConfig `yaml:"exchanges"`
 	EOFQueueConfig      communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
+	InputExchange       string                                             `yaml:"input_exchange"`
 	IncludeYears        []int                                              `yaml:"include_years"`
 	IncludeCities       []string                                           `yaml:"include_cities"`
 	DataDelimiter       string                                             `yaml:"data_delimiter"`

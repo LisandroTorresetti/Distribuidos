@@ -8,6 +8,8 @@ data_delimiter: '|'
 data_field_delimiter: ','
 end_batch_marker: 'PING'
 
+input_exchange: "weather-topic"
+
 exchanges:
   exchange_input_weather: # messages from server to weather-worker
       name: "weather-topic"

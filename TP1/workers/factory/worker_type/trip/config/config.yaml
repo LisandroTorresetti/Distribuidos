@@ -12,6 +12,7 @@ end_batch_marker: 'PING'
 
 include_years: [2016, 2017]
 include_cities: ["montreal"]
+input_exchange: "trips-topic"
 
 exchanges:
   exchange_input_trips: # messages from server to trip-worker

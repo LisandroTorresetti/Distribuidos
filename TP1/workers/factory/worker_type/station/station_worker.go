@@ -90,16 +90,19 @@ func (sw *StationWorker) DeclareExchanges() error {
 		return err
 	}
 
+	routingKeys := sw.GetRoutingKeys()
+	err = sw.rabbitMQ.Bind([]string{sw.config.InputExchange}, routingKeys)
+	if err != nil {
+		return err
+	}
+
 	log.Infof("[worker: %s][workerID: %v][status: OK] exchanges declared correctly!", stationStr, sw.GetID())
 	return nil
 }
 
 // ProcessInputMessages process all messages that Station Worker receives
 func (sw *StationWorker) ProcessInputMessages() error {
-	exchangeName := sw.config.ExchangesConfig[exchangeInput+stationStr].Name // input exchange
-	routingKeys := sw.GetRoutingKeys()
-
-	consumer, err := sw.rabbitMQ.GetExchangeConsumer(exchangeName, routingKeys)
+	consumer, err := sw.rabbitMQ.GetConsumerForExchange(sw.config.InputExchange)
 	if err != nil {
 		return err
 	}
@@ -114,7 +117,7 @@ func (sw *StationWorker) ProcessInputMessages() error {
 		msg := string(message.Body)
 		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", stationWorkerType, sw.GetID(), eofString)
-			eofData := eof.NewEOF(sw.config.City, eofString)
+			eofData := eof.NewEOF(sw.config.City, stationWorkerType, eofString)
 			eofBytes, err := json.Marshal(eofData)
 			if err != nil {
 				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshalling EOF message: %s", stationWorkerType, sw.GetID(), err.Error())
@@ -276,7 +279,7 @@ func (sw *StationWorker) getValidDataToSend(dataChunk string) ([]*station.Statio
 		}
 
 		if sw.isValid(stationData) {
-			stationData.Metadata = entities.NewMetadata(sw.config.City, stationStr, "")
+			stationData.Metadata = entities.NewMetadata(sw.config.City, stationStr, stationWorkerType, "")
 			validStationData = append(validStationData, stationData)
 		}
 	}

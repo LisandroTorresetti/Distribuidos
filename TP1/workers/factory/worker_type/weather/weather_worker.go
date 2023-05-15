@@ -22,7 +22,6 @@ const (
 	dateLayout        = "2006-01-02"
 	weatherWorkerType = "weather-worker"
 	weatherStr        = "weather"
-	exchangeInput     = "exchange_input_"
 	outputTarget      = "output"
 	contentTypeJson   = "application/json"
 )
@@ -88,16 +87,19 @@ func (ww *WeatherWorker) DeclareExchanges() error {
 		return err
 	}
 
+	routingKeys := ww.GetRoutingKeys()
+	err = ww.rabbitMQ.Bind([]string{ww.config.InputExchange}, routingKeys)
+	if err != nil {
+		return err
+	}
+
 	log.Infof("[worker: %s][workerID: %v][status: OK] exchanges declared correctly!", weatherWorkerType, ww.GetID())
 	return nil
 }
 
 // ProcessInputMessages process all messages that Weather Worker receives
 func (ww *WeatherWorker) ProcessInputMessages() error {
-	exchangeName := ww.config.ExchangesConfig[exchangeInput+weatherStr].Name // input exchange
-	routingKeys := ww.GetRoutingKeys()
-
-	consumer, err := ww.rabbitMQ.GetExchangeConsumer(exchangeName, routingKeys)
+	consumer, err := ww.rabbitMQ.GetConsumerForExchange(ww.config.InputExchange)
 	if err != nil {
 		return err
 	}
@@ -112,7 +114,7 @@ func (ww *WeatherWorker) ProcessInputMessages() error {
 		msg := string(message.Body)
 		if msg == eofString {
 			log.Infof("[worker: %s][workerID: %v][status: OK] EOF received: %s", weatherWorkerType, ww.GetID(), eofString)
-			eofData := eof.NewEOF(ww.config.City, eofString)
+			eofData := eof.NewEOF(ww.config.City, weatherWorkerType, eofString)
 			eofBytes, err := json.Marshal(eofData)
 			if err != nil {
 				log.Errorf("[worker: %s][workerID: %v][status: error][method: processData] error marshalling EOF message: %s", weatherWorkerType, ww.GetID(), err.Error())
@@ -216,7 +218,7 @@ func (ww *WeatherWorker) getValidDataToSend(dataChunk string) (map[string][]*wea
 		}
 
 		if ww.isValid(weatherData) {
-			weatherData.Metadata = entities.NewMetadata(ww.config.City, weatherStr, "")
+			weatherData.Metadata = entities.NewMetadata(ww.config.City, weatherStr, weatherWorkerType, "")
 			quarterID := utils.GetQuarter(int(weatherData.Date.Month()))
 			quartersMap[quarterID] = append(quartersMap[quarterID], weatherData)
 		}
