@@ -1,0 +1,38 @@
+eof_type: "EOF"
+
+threshold_avg_distance: 6
+
+exchanges:
+  exchange_input_stations_city_joiner: # messages from Station Worker to City Joiner
+    name: "stations-cityjoiner-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
+
+  exchange_input_trips_city_joiner: # messages from Trip Worker to City Joiner
+    name: "trips-cityjoiner-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
+
+input_exchanges:
+  trips: "trips-cityjoiner-topic"
+  stations: "stations-cityjoiner-topic"
+
+eof_queue_config: # queue of the eof manager
+  name: "eof-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
+
+output_city_handler_queue: # messages from City Joiner to City Handler
+  name: "cityjoiner-rainhandler-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
