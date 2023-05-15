@@ -11,14 +11,13 @@ import (
 const configFilepath = "./joiners/factory/joiner_type/cityjoiner/config/config.yaml"
 
 type CityJoinerConfig struct {
-	ExchangesConfig      map[string]communication.ExchangeDeclarationConfig `yaml:"exchanges"`
-	EOFQueueConfig       communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
-	CityHandlerQueue     communication.QueueDeclarationConfig               `yaml:"output_city_handler_queue"`
-	InputExchanges       map[string]string                                  `yaml:"input_exchanges"`
-	ThresholdAvgDistance float64                                            `yaml:"threshold_avg_distance"`
-	EOFType              string                                             `yaml:"eof_type"`
-	City                 string
-	ID                   string
+	ExchangesConfig  map[string]communication.ExchangeDeclarationConfig `yaml:"exchanges"`
+	EOFQueueConfig   communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
+	CityHandlerQueue communication.QueueDeclarationConfig               `yaml:"output_city_handler_queue"`
+	InputExchanges   map[string]string                                  `yaml:"input_exchanges"`
+	EOFType          string                                             `yaml:"eof_type"`
+	City             string
+	ID               string
 }
 
 func LoadConfig() (*CityJoinerConfig, error) {

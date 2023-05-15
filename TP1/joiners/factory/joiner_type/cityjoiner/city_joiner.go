@@ -155,8 +155,7 @@ func (cj *CityJoiner) JoinData() error {
 
 // SendResult summarizes the joined data and sends it to the City Handler
 func (cj *CityJoiner) SendResult() error {
-	var validData []*distanceaccumulator.DistanceAccumulator
-	var debugNames []string
+	var joinedDataSlice []*distanceaccumulator.DistanceAccumulator
 
 	metadata := entities.NewMetadata(
 		cj.GetCity(),
@@ -166,14 +165,11 @@ func (cj *CityJoiner) SendResult() error {
 	)
 
 	for _, accumulator := range cj.joinResult {
-		if accumulator.GetAverageDistance() > cj.config.ThresholdAvgDistance {
-			accumulator.Metadata = metadata
-			debugNames = append(debugNames, accumulator.Name)
-			validData = append(validData, accumulator)
-		}
-	} // FIXME: here we cannot filter data
+		accumulator.Metadata = metadata
+		joinedDataSlice = append(joinedDataSlice, accumulator)
+	}
 
-	validDataBytes, err := json.Marshal(validData)
+	validDataBytes, err := json.Marshal(joinedDataSlice)
 	if err != nil {
 		log.Error(cj.getLogMessage("SendResult", "error marshalling valid data to send", err))
 	}

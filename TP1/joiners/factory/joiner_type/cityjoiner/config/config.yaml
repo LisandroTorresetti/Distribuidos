@@ -1,7 +1,5 @@
 eof_type: "EOF"
 
-threshold_avg_distance: 6
-
 exchanges:
   exchange_input_stations_city_joiner: # messages from Station Worker to City Joiner
     name: "stations-cityjoiner-topic"
