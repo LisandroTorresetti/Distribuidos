@@ -4,6 +4,7 @@ WORKDIR /client
 COPY ../go.mod .
 COPY ../go.sum .
 COPY ../datasets/test/ ./datasets/test/
+COPY ../datasets/tomitest/ ./datasets/tomitest/
 COPY ../socket/ ./socket/
 COPY ../utils/ ./utils/
 COPY /client/ .
