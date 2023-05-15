@@ -39,6 +39,6 @@ Por ej:
 
 + `weather-rainjoiner-topic`
 + `trips-yearjoiner-topic`
-+ `stations-montrealjoiner-topic`
++ `stations-cityjoiner-topic`
 
 
