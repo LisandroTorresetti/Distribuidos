@@ -15,6 +15,7 @@ import (
 	"tp1/domain/entities/station"
 	"tp1/domain/entities/trip"
 	"tp1/joiners/factory/joiner_type/cityjoiner/config"
+	"tp1/utils"
 )
 
 const (
@@ -239,6 +240,11 @@ outerStationsLoop:
 			stationData := stationsData[idx]
 			metadata := stationData.GetMetadata()
 
+			// sanity check
+			if !utils.ContainsString(metadata.GetCity(), cj.config.ValidCities) {
+				panic(fmt.Sprintf("Valid cities are %v, got: %s", cj.config.ValidCities, metadata.GetCity()))
+			}
+
 			if metadata.GetType() == cj.config.EOFType {
 				// sanity checks
 				if metadata.GetCity() != cj.GetCity() {
@@ -292,6 +298,11 @@ outerTripsLoop:
 		for idx := range tripsData {
 			tripData := tripsData[idx]
 			metadata := tripData.GetMetadata()
+
+			// sanity check
+			if !utils.ContainsString(metadata.GetCity(), cj.config.ValidCities) {
+				panic(fmt.Sprintf("Valid cities are %v, got: %s", cj.config.ValidCities, metadata.GetCity()))
+			}
 
 			if metadata.GetType() == cj.config.EOFType {
 				// sanity checks

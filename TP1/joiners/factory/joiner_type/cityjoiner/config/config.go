@@ -15,6 +15,7 @@ type CityJoinerConfig struct {
 	EOFQueueConfig   communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
 	CityHandlerQueue communication.QueueDeclarationConfig               `yaml:"output_city_handler_queue"`
 	InputExchanges   map[string]string                                  `yaml:"input_exchanges"`
+	ValidCities      []string                                           `yaml:"valid_cities"`
 	EOFType          string                                             `yaml:"eof_type"`
 	City             string
 	ID               string
