@@ -27,13 +27,13 @@ func LoadConfig() (*CityJoinerConfig, error) {
 		return nil, err
 	}
 
-	var weatherConfig CityJoinerConfig
-	err = yaml.Unmarshal(configFile, &weatherConfig)
+	var cityConfig CityJoinerConfig
+	err = yaml.Unmarshal(configFile, &cityConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing City Joiner config file: %s", err)
 	}
-	weatherConfig.City = os.Getenv("CITY")
-	weatherConfig.ID = os.Getenv("JOINER_ID") // possible IDs: Q1, Q2, Q3, Q4
+	cityConfig.City = os.Getenv("CITY")
+	cityConfig.ID = os.Getenv("JOINER_ID") // possible IDs: Q1, Q2, Q3, Q4
 
-	return &weatherConfig, nil
+	return &cityConfig, nil
 }
