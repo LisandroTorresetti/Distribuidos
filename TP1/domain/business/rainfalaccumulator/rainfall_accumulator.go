@@ -1,4 +1,4 @@
-package rainjoiner
+package rainfalaccumulator
 
 // RainfallAccumulator structure used at stage of joining data from weather and trips
 type RainfallAccumulator struct {

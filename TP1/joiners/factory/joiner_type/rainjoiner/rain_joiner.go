@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 	"tp1/communication"
-	"tp1/domain/business/rainjoiner"
+	"tp1/domain/business/rainfalaccumulator"
 	"tp1/domain/entities/trip"
 	"tp1/domain/entities/weather"
 	"tp1/joiners/factory/joiner_type/rainjoiner/config"
@@ -29,12 +29,12 @@ type RainJoiner struct {
 	rabbitMQ *communication.RabbitMQ
 	config   *config.RainJoinerConfig
 	dateSet  utils.DateSet
-	result   map[string]*rainjoiner.RainfallAccumulator
+	result   map[string]*rainfalaccumulator.RainfallAccumulator
 }
 
 func NewRainJoiner(rabbitMQ *communication.RabbitMQ, config *config.RainJoinerConfig) *RainJoiner {
 	dateSet := make(utils.DateSet)
-	result := make(map[string]*rainjoiner.RainfallAccumulator)
+	result := make(map[string]*rainfalaccumulator.RainfallAccumulator)
 	return &RainJoiner{
 		rabbitMQ: rabbitMQ,
 		config:   config,
@@ -154,7 +154,7 @@ func (rj *RainJoiner) JoinData() error {
 
 // SendResult summarizes the joined data and sends it to the Rain Handler
 func (rj *RainJoiner) SendResult() error {
-	rainfallSummary := rainjoiner.NewRainfallAccumulator()
+	rainfallSummary := rainfalaccumulator.NewRainfallAccumulator()
 	totalCount := 0
 	var totalDuration float64
 
@@ -308,7 +308,7 @@ outerTripsLoop:
 				key := tripData.StartDate.String()
 				rainfallAccumulator, ok := rj.result[key]
 				if !ok {
-					newRainfallAccumulator := rainjoiner.NewRainfallAccumulator()
+					newRainfallAccumulator := rainfalaccumulator.NewRainfallAccumulator()
 					newRainfallAccumulator.UpdateAccumulator(tripData.Duration)
 					rj.result[key] = newRainfallAccumulator
 					continue
