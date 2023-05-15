@@ -78,7 +78,7 @@ func (sw *StationWorker) DeclareQueues() error {
 }
 
 // DeclareExchanges declares exchanges for Station Worker
-// Exchanges: stations-topic, stations-yearjoiner-topic, stations-montrealjoiner-topic
+// Exchanges: stations-topic, stations-yearjoiner-topic, stations-cityjoiner-topic
 func (sw *StationWorker) DeclareExchanges() error {
 	var exchanges []communication.ExchangeDeclarationConfig
 	for _, exchange := range sw.config.ExchangesConfig {
@@ -166,7 +166,7 @@ func (sw *StationWorker) processData(ctx context.Context, dataChunk string) erro
 	}
 
 	if utils.ContainsString(sw.config.City, sw.config.IncludeCities) {
-		err = sw.publishDataInExchange(ctx, validDataAsBytes, sw.config.ExchangesConfig[exchangeOutput+"montreal_joiner"].Name)
+		err = sw.publishDataInExchange(ctx, validDataAsBytes, sw.config.ExchangesConfig[exchangeOutput+"city_joiner"].Name)
 		if err != nil {
 			log.Errorf("[worker: %s][workerID: %v][status: Error] error publishing data in Montreal Joiner", stationWorkerType, sw.GetID())
 			return err
@@ -228,7 +228,7 @@ func (sw *StationWorker) getStationData(data string) (*station.StationData, erro
 }
 
 // isValid returns true if the following conditions are met:
-// + The station code is greater than 0
+// + The station code is equal or greater than 0
 // + Latitude is between -90 and 90
 // + Longitude is between -180 and 180
 // + Name is not the empty string
@@ -244,11 +244,12 @@ func (sw *StationWorker) isValid(stationData *station.StationData) bool {
 		invalidReasons = append(invalidReasons, "latitude out of bound")
 	}
 
-	if !(longitudeBound <= longitude && longitude <= longitudeBound) {
+	if !(-longitudeBound <= longitude && longitude <= longitudeBound) {
 		validData = false
 		invalidReasons = append(invalidReasons, "longitude out of bound")
 	}
-	if stationData.Code <= 0 {
+
+	if stationData.Code < 0 {
 		invalidReasons = append(invalidReasons, "Station code < 0")
 		validData = false
 	}
@@ -300,7 +301,8 @@ func (sw *StationWorker) marshalDataToSend(data []*station.StationData) ([]byte,
 // publishDataInExchange publish the given chunk of data in exchangeName
 func (sw *StationWorker) publishDataInExchange(ctx context.Context, dataToSend []byte, exchangeName string) error {
 	targetStage := utils.GetTargetStage(exchangeName)
-	routingKey := fmt.Sprintf("%s.%s", targetStage, sw.config.City) // OBS: it has a difference with the other workers, here we only need the next stage and the city
+	// OBS: it has a difference with the other workers, here we use de word 'stations' as the id, we don't have anything to get a Qid
+	routingKey := fmt.Sprintf("%s.%s.%s", targetStage, sw.config.City, stationStr)
 	err := sw.rabbitMQ.PublishMessageInExchange(ctx, exchangeName, routingKey, dataToSend, contentTypeJson)
 
 	if err != nil {

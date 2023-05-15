@@ -17,7 +17,7 @@ type stationValidColumns struct {
 	Name      int `yaml:"name"`
 	Latitude  int `yaml:"latitude"`
 	Longitude int `yaml:"longitude"`
-	YearID    int `yaml:"year_id"` // ToDo: maybe we can delete this field. Licha
+	YearID    int `yaml:"year_id"`
 }
 
 type StationWorkerConfig struct {

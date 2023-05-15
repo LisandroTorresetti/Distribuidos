@@ -26,13 +26,13 @@ counters:
     washington: 1
     toronto: 1
 
-  montreal-joiner:
+  city-joiner:
     montreal: 1
 
 responses:
   weather-worker: ["weather-rainjoiner-topic"]
-  trips-worker: ["trips-rainjoiner-topic", "trips-montrealjoiner-topic", "trips-yearjoiner-topic"]
-  stations-worker: ["stations-montrealjoiner-topic", "stations-yearjoiner-topic"]
+  trips-worker: ["trips-rainjoiner-topic", "trips-cityjoiner-topic", "trips-yearjoiner-topic"]
+  stations-worker: ["stations-cityjoiner-topic", "stations-yearjoiner-topic"]
 
 eof_queue_config:
   name: "eof-queue"
@@ -43,7 +43,7 @@ eof_queue_config:
 
 exchanges:
   - weather-rainjoiner-topic
-  - stations-montrealjoiner-topic
+  - stations-cityjoiner-topic
   - stations-yearjoiner-topic
 
 # ToDo: declare the rest of the exchanges and queues

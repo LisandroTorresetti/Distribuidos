@@ -55,11 +55,11 @@ func main() {
 		}
 	}(joiner)
 
-	/*err = joiner.DeclareQueues()
+	err = joiner.DeclareQueues()
 	if err != nil {
 		log.Debug(getLogMessage(joiner, "error declaring queues", err))
 		return
-	}*/
+	}
 
 	err = joiner.DeclareExchanges()
 	if err != nil {

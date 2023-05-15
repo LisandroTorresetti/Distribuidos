@@ -30,8 +30,8 @@ exchanges:
     internal: false
     no_wait: false
 
-  exchange_output_montreal_joiner: # messages from station-worker to montreal joiner
-    name: "stations-montrealjoiner-topic"
+  exchange_output_city_joiner: # messages from station-worker to montreal joiner
+    name: "stations-cityjoiner-topic"
     type: "topic"
     durable: true
     auto_deleted: false

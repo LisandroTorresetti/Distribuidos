@@ -75,7 +75,7 @@ func (tw *TripWorker) DeclareQueues() error {
 }
 
 // DeclareExchanges declares exchanges for Trip Worker
-// Exchanges: trips-topic, trips-rainjoiner-topic, trips-yearjoiner-topic, trips-montrealjoiner-topic
+// Exchanges: trips-topic, trips-rainjoiner-topic, trips-yearjoiner-topic, trips-cityjoiner-topic
 func (tw *TripWorker) DeclareExchanges() error {
 	var exchanges []communication.ExchangeDeclarationConfig
 	for _, exchange := range tw.config.ExchangesConfig {
@@ -169,7 +169,7 @@ func (tw *TripWorker) processData(ctx context.Context, dataChunk string) error {
 	}
 
 	if utils.ContainsString(tw.config.City, tw.config.IncludeCities) {
-		err = tw.publishDataInExchange(ctx, dataToSendByQuarter, tw.config.ExchangesConfig[exchangeOutput+"montreal_joiner"].Name)
+		err = tw.publishDataInExchange(ctx, dataToSendByQuarter, tw.config.ExchangesConfig[exchangeOutput+"city_joiner"].Name)
 		if err != nil {
 			log.Errorf("[worker: %s][workerID: %v][status: Error] error publishing data in Montreal Joiner", tripWorkerType, tw.GetID())
 			return err
@@ -277,7 +277,7 @@ func (tw *TripWorker) getValidDataToSend(dataChunk string) (map[string][]*trip.T
 // isValid returns true if the following conditions are met:
 // + The year of the StartDate must be equal to YearID value
 // + The Duration of the trip is greater than 0
-// + Both start station and end station must have an ID greater than 0
+// + Both start station and end station must have an ID equal or greater than 0
 func (tw *TripWorker) isValid(tripData *trip.TripData) bool {
 	validData := true
 	var invalidReasons []string

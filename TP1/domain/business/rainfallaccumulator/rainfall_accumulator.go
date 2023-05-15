@@ -1,4 +1,4 @@
-package rainfalaccumulator
+package rainfallaccumulator
 
 import "tp1/domain/entities"
 

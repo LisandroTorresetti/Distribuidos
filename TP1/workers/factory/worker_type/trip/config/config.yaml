@@ -40,8 +40,8 @@ exchanges:
     internal: false
     no_wait: false
 
-  exchange_output_montreal_joiner: # messages from trip-worker to montreal joiner
-    name: "trips-montrealjoiner-topic"
+  exchange_output_city_joiner: # messages from trip-worker to montreal joiner
+    name: "trips-cityjoiner-topic"
     type: "topic"
     durable: true
     auto_deleted: false
