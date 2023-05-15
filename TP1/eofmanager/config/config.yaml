@@ -1,5 +1,6 @@
 eof_type: "EOF"
 
+# FIXME: update counters
 counters:
   weather-worker:
     montreal: 1
@@ -33,6 +34,11 @@ responses:
   weather-worker: ["weather-rainjoiner-topic"]
   trips-worker: ["trips-rainjoiner-topic", "trips-cityjoiner-topic", "trips-yearjoiner-topic"]
   stations-worker: ["stations-cityjoiner-topic", "stations-yearjoiner-topic"]
+
+  rain-joiner: ["rainjoiner-rainhandler-queue"]
+  city-joiner: ["cityjoiner-cityhandler-queue"]
+  year-joiner: ["cityjoiner-yeargrouper2016-queue", "cityjoiner-yeargrouper2017-queue"]
+
 
 eof_queue_config:
   name: "eof-queue"

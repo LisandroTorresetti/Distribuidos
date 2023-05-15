@@ -71,13 +71,13 @@ func (cj *CityJoiner) GetCity() string {
 // OBS: this routing keys works fine for each input exchange
 func (cj *CityJoiner) GetRoutingKeys() []string {
 	return []string{
-		fmt.Sprintf("%s.%s.%s", cityJoinerStr),
 		fmt.Sprintf("%s.%s.%s", cityJoinerStr, cj.GetCity(), cj.GetID()),  // input routing key: cityjoiner.city.Qid
-		fmt.Sprintf("%s.%s.%s", cityJoinerStr, cj.GetCity(), stationsStr), // input routing key: cityjoiner.city.stations, special case due to stations does not have a Qid
+		fmt.Sprintf("%s.%s.%s", cityJoinerStr, cj.GetCity(), stationsStr), // input routing key: cityjoiner.city.stations, special case due to stations do not have a Qid
 		fmt.Sprintf("eof.%s.%s", cityJoinerStr, cj.config.City),           // eof.cityjoiner.city
 	}
 }
 
+// GetEOFString eof of the CityJoiner
 func (cj *CityJoiner) GetEOFString() string {
 	return fmt.Sprintf("eof.%s.%s", cityJoinerStr, cj.GetCity())
 }
@@ -373,7 +373,7 @@ func (cj *CityJoiner) haveDataOfBothStations(startStationCode int, endStationCod
 
 // getStationsMapKey returns the key for the CityJoiner.stationsMap. The key structure is stationCode-yearID
 func getStationsMapKey(stationCode int, yearID int) string {
-	return fmt.Sprintf("%s-%s", stationCode, yearID)
+	return fmt.Sprintf("%v-%v", stationCode, yearID)
 }
 
 // calculateDistance returns the distance between two stations using haversine formula
