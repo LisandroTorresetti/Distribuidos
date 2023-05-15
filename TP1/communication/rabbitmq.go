@@ -10,8 +10,9 @@ import (
 const rabbitUrlEnvVarName = "RABBIT_URL"
 
 type RabbitMQ struct {
-	connection *amqp.Connection
-	channel    *amqp.Channel
+	connection                  *amqp.Connection
+	channel                     *amqp.Channel
+	exchangeToAnonymousQueueMap map[string]string
 }
 
 // NewRabbitMQ constructor for RabbitMQ. This function returns a RabbitMQ
@@ -28,9 +29,12 @@ func NewRabbitMQ() (*RabbitMQ, error) {
 		return nil, err
 	}
 
+	exchangeToAnonymousQueueMap := make(map[string]string)
+
 	return &RabbitMQ{
-		connection: connection,
-		channel:    channel,
+		connection:                  connection,
+		channel:                     channel,
+		exchangeToAnonymousQueueMap: exchangeToAnonymousQueueMap,
 	}, nil
 }
 
@@ -102,6 +106,63 @@ func (r *RabbitMQ) PublishMessageInExchange(ctx context.Context, exchange string
 			Body:        message,
 		},
 	)
+}
+
+// Bind binds input exchanges with routing keys. The anonymous queues declare here are saved.
+func (r *RabbitMQ) Bind(inputExchanges []string, routingKeys []string) error {
+	for _, exchange := range inputExchanges {
+		anonymousQueue, err := r.channel.QueueDeclare(
+			"",
+			true,
+			false,
+			true,
+			false,
+			nil,
+		)
+
+		if err != nil {
+			return fmt.Errorf("error declaring anonymous queue: %w", err)
+		}
+
+		for _, routingKey := range routingKeys {
+			err = r.channel.QueueBind(
+				anonymousQueue.Name,
+				routingKey,
+				exchange,
+				false,
+				nil,
+			)
+			if err != nil {
+				return fmt.Errorf("error binding routing key %s: %w", routingKey, err)
+			}
+		}
+		r.exchangeToAnonymousQueueMap[exchange] = anonymousQueue.Name
+	}
+	return nil
+}
+
+// GetConsumerForExchange returns a consumer for the given exchange name
+func (r *RabbitMQ) GetConsumerForExchange(exchangeName string) (<-chan amqp.Delivery, error) {
+	queueName, ok := r.exchangeToAnonymousQueueMap[exchangeName]
+	if !ok {
+		return nil, fmt.Errorf("error queue not found for exchange %s", exchangeName)
+	}
+
+	consumer, err := r.channel.Consume(
+		queueName,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("error getting consumer for exchange %s: %w", exchangeName, err)
+	}
+
+	return consumer, nil
 }
 
 // GetExchangeConsumer returns a consumer for a given exchange. The consumer is bound to the given routing keys
