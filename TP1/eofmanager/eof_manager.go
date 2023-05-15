@@ -16,9 +16,11 @@ import (
 const (
 	eofQueue        = "eof-queue"
 	contentTypeJson = "application/json"
+	eofManagerStr   = "EOF-Manager"
 )
 
 type eofConfig struct {
+	EOFType   string                    `yaml:"eof_type"`
 	Counters  map[string]map[string]int `yaml:"counters"`
 	Queues    []string                  `yaml:"queues"`
 	Exchanges []string                  `yaml:"exchanges"`
@@ -122,9 +124,14 @@ func (eof *EOFManager) StartManaging() {
 				panic(fmt.Sprintf("[EOF Manager] error unmarshalling EOF Data: %s", err.Error()))
 			}
 			eofMetadata := eofData.GetMetadata()
-			stage := eofMetadata.GetType()
+
+			// sanity-check
+			if eofMetadata.GetType() != eof.config.EOFType {
+				panic(fmt.Sprintf("received an invalid type. Expected: %s - Got: %s", eof.config.EOFType, eofMetadata.GetType()))
+			}
+
+			stage := eofMetadata.GetStage()
 			city := eofMetadata.GetCity()
-			log.Debugf("LICHITA llego este EOF: %s", eofMetadata.GetMessage())
 
 			actualValue, ok := eof.config.Counters[stage][city]
 			if !ok {
@@ -152,17 +159,17 @@ func (eof *EOFManager) StartManaging() {
 }
 
 func (eof *EOFManager) sendStartProcessingMessage(ctx context.Context, eofMetadata entities.Metadata) error {
-	targetExchanges, ok := eof.config.Responses[eofMetadata.GetType()]
+	targetExchanges, ok := eof.config.Responses[eofMetadata.GetStage()]
 	if !ok {
-		panic(fmt.Sprintf("[EOF Manager] cannot found exchange to send response for key %s", eofMetadata.GetType()))
+		panic(fmt.Sprintf("[EOF Manager] cannot found exchange to send response for key %s", eofMetadata.GetStage()))
 	}
 
 	for _, exchange := range targetExchanges {
 		targetStage := utils.GetTargetStage(exchange)                              // from the exchange name we get the target (stage N) to send the EOF of stage N - 1
-		routingKey := fmt.Sprintf("eof.%s.%s", targetStage, eofMetadata.GetCity()) // were I want to send the EOF message
+		routingKey := fmt.Sprintf("eof.%s.%s", targetStage, eofMetadata.GetCity()) // where I want to send the EOF message, eg: eof.rainjoiner.city
 
-		eofMessage := eofEntity.NewEOF(eofMetadata.GetCity(), eofMetadata.GetMessage()) // eg message: eof.weather.montreal
-		eofMessageBytes, err := json.Marshal(eofMessage)
+		eofMessage := eofEntity.NewEOF(eofMetadata.GetCity(), eofManagerStr, eofMetadata.GetMessage()) // eg message: eof.weather.montreal
+		eofMessageBytes, err := json.Marshal([]*eofEntity.EOFData{eofMessage})
 		if err != nil {
 			panic(fmt.Sprintf("[EOF Manager] error marshalling EOF message to send, routing key %s: %s", routingKey, err.Error()))
 		}

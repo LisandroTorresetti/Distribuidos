@@ -6,6 +6,7 @@ COPY ../go.sum .
 COPY ../eofmanager/*.go .
 COPY ../utils/ ./utils/
 COPY ../eofmanager/config/ ./config/
+COPY ../domain/entities/ ./domain/entities/
 COPY ../communication/ ./communication/
 
 RUN go mod download

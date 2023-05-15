@@ -1,36 +1,38 @@
+eof_type: "EOF"
+
 counters:
-  weather:
+  weather-worker:
     montreal: 1
     washington: 1
     toronto: 1
 
-  trips:
+  trips-worker:
     montreal: 1
     washington: 1
     toronto: 1
 
-  stations:
+  stations-worker:
     montreal: 1
     washington: 1
     toronto: 1
 
-  rainjoiner:
+  rain-joiner:
     montreal: 1
     washington: 1
     toronto: 1
 
-  yearjoiner:
+  year-joiner:
     montreal: 1
     washington: 1
     toronto: 1
 
-  montrealjoiner:
+  montreal-joiner:
     montreal: 1
 
 responses:
-  weather: ["weather-rainjoiner-topic"]
-  trips: ["trips-rainjoiner-topic", "trips-montrealjoiner-topic", "trips-yearjoiner-topic"]
-  stations: ["stations-montrealjoiner-topic", "stations-yearjoiner-topic"]
+  weather-worker: ["weather-rainjoiner-topic"]
+  trips-worker: ["trips-rainjoiner-topic", "trips-montrealjoiner-topic", "trips-yearjoiner-topic"]
+  stations-worker: ["stations-montrealjoiner-topic", "stations-yearjoiner-topic"]
 
 eof_queue_config:
   name: "eof-queue"
