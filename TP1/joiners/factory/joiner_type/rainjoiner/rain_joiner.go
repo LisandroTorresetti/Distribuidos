@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/rabbitmq/amqp091-go"
 	log "github.com/sirupsen/logrus"
+	"strings"
 	"time"
 	"tp1/communication"
 	"tp1/domain/business/rainjoiner"
@@ -22,6 +22,7 @@ const (
 	tripsStr             = "trips"
 	contentTypeJson      = "application/json"
 	contentTypePlainText = "text/plain"
+	exchangeInput        = "exchange_input"
 )
 
 type RainJoiner struct {
@@ -69,8 +70,8 @@ func (rj *RainJoiner) getLogMessage(method string, message string, err error) st
 func (rj *RainJoiner) GetRoutingKeys() []string {
 	return []string{
 		fmt.Sprintf("%s.%s.%s", rainJoinerStr, rj.GetCity(), rj.GetID()), // input routing key: rainjoiner.city.Qid
-		fmt.Sprintf("eof.weather.%s.%s", rainJoinerStr, rj.config.City),  // eof.weather.rainjoiner.city
-		fmt.Sprintf("eof.trips.%s.%s", rainJoinerStr, rj.config.City),    // eof.trips.rainjoiner.city
+		fmt.Sprintf("eof.%s.%s", rainJoinerStr, rj.config.City),          // eof.rainjoiner.city
+		//fmt.Sprintf("eof.trips.%s.%s", rainJoinerStr, rj.config.City),    // eof.trips.rainjoiner.city
 	}
 }
 
@@ -104,11 +105,22 @@ func (rj *RainJoiner) DeclareQueues() error {
 // Exchanges: weather-topic, weather-rainjoinner-topic
 func (rj *RainJoiner) DeclareExchanges() error {
 	var exchanges []communication.ExchangeDeclarationConfig
-	for _, exchangeConfig := range rj.config.ExchangesConfig {
+	var inputExchanges []string
+	for key, exchangeConfig := range rj.config.ExchangesConfig {
+		if strings.Contains(key, exchangeInput) {
+			inputExchanges = append(inputExchanges, exchangeConfig.Name)
+		}
 		exchanges = append(exchanges, exchangeConfig)
 	}
 
 	err := rj.rabbitMQ.DeclareExchanges(exchanges)
+	if err != nil {
+		return err
+	}
+
+	// for input exchanges we need to perform the binding operation
+	routingKeys := rj.GetRoutingKeys()
+	err = rj.rabbitMQ.Bind(inputExchanges, routingKeys)
 	if err != nil {
 		return err
 	}
@@ -142,7 +154,7 @@ func (rj *RainJoiner) JoinData() error {
 
 // SendResult summarizes the joined data and sends it to the Rain Handler
 func (rj *RainJoiner) SendResult() error {
-	var rainfallSummary *rainjoiner.RainfallAccumulator
+	rainfallSummary := rainjoiner.NewRainfallAccumulator()
 	totalCount := 0
 	var totalDuration float64
 
@@ -153,7 +165,6 @@ func (rj *RainJoiner) SendResult() error {
 
 	rainfallSummary.SetCounter(totalCount)
 	rainfallSummary.SetDuration(totalDuration)
-
 	rainfallSummaryBytes, err := json.Marshal(rainfallSummary)
 	if err != nil {
 		log.Error(rj.getLogMessage("SendResult", "error marshalling data", ErrMarshallingSummary))
@@ -190,24 +201,22 @@ func (rj *RainJoiner) Kill() error {
 	return rj.rabbitMQ.KillBadBunny()
 }
 
-func (rj *RainJoiner) getConsumer(targetExchange string) (<-chan amqp091.Delivery, error) {
-	exchangeName, ok := rj.config.InputExchanges[targetExchange]
+func (rj *RainJoiner) getExchangeNameForDataType(dataType string) (string, error) {
+	exchangeName, ok := rj.config.InputExchanges[dataType]
 	if !ok {
-		log.Errorf(rj.getLogMessage("getConsumer", fmt.Sprintf("input exchange related with '%s' key not found", targetExchange), ErrExchangeNotFound))
+		return "", fmt.Errorf("input exchange related with '%s' key not found", dataType)
 	}
-	routingKeys := rj.GetRoutingKeys()
-
-	consumer, err := rj.rabbitMQ.GetExchangeConsumer(exchangeName, routingKeys)
-	if err != nil {
-		return nil, err
-	}
-
-	return consumer, nil
+	return exchangeName, nil
 }
 
 // saveWeatherData saves the date of the weather data that arrives to this joiner
 func (rj *RainJoiner) saveWeatherData() error {
-	consumer, err := rj.getConsumer(weatherStr)
+	exchangeName, err := rj.getExchangeNameForDataType(weatherStr)
+	if err != nil {
+		return err
+	}
+
+	consumer, err := rj.rabbitMQ.GetConsumerForExchange(exchangeName)
 	if err != nil {
 		return err
 	}
@@ -215,32 +224,36 @@ func (rj *RainJoiner) saveWeatherData() error {
 	log.Info(rj.getLogMessage("saveWeatherData", "start consuming weather messages", nil))
 	eofWeatherString := rj.GetExpectedEOFString(weatherStr)
 
+outerWeatherLoop:
 	for message := range consumer {
 		// OBS: we use the benefit of Unmarshal. Here we can receive WeatherData or EOF, we know what type is based on the Metadata attribute
-		var data weather.WeatherData
-		err = json.Unmarshal(message.Body, &data)
+		var weathersData []*weather.WeatherData
+		err = json.Unmarshal(message.Body, &weathersData)
 		if err != nil {
 			log.Error(rj.getLogMessage("saveWeatherData", "error unmarshalling data", ErrUnmarshallingWeatherData))
 			return err
 		}
 
-		metadata := data.GetMetadata()
+		for idx := range weathersData {
+			data := weathersData[idx]
+			metadata := data.GetMetadata()
 
-		if metadata.GetType() == rj.config.EOFType {
-			// sanity checks
-			if metadata.GetCity() != rj.GetCity() {
-				panic(fmt.Sprintf("received an EOF message with of another city: Expected: %s - Got: %s", rj.GetCity(), metadata.GetCity()))
-			}
-			if metadata.GetMessage() != eofWeatherString {
-				panic(fmt.Sprintf("received an EOF message with an invalid format: Expected: %s - Got: %s", eofWeatherString, metadata.GetMessage()))
+			if metadata.GetType() == rj.config.EOFType {
+				// sanity checks
+				if metadata.GetCity() != rj.GetCity() {
+					panic(fmt.Sprintf("received an EOF message with of another city: Expected: %s - Got: %s", rj.GetCity(), metadata.GetCity()))
+				}
+				if metadata.GetMessage() != eofWeatherString {
+					panic(fmt.Sprintf("received an EOF message with an invalid format: Expected: %s - Got: %s", eofWeatherString, metadata.GetMessage()))
+				}
+
+				log.Info(rj.getLogMessage("saveWeatherData", fmt.Sprintf("EOF received: %s", metadata.GetMessage()), nil))
+				break outerWeatherLoop
 			}
 
-			log.Info(rj.getLogMessage("saveWeatherData", fmt.Sprintf("EOF received: %s", metadata.GetMessage()), nil))
-			break
+			log.Debug(rj.getLogMessage("saveWeatherData", fmt.Sprintf("received weather data %+v", data), nil))
+			rj.dateSet.Add(data.Date)
 		}
-
-		log.Debug(rj.getLogMessage("saveWeatherData", fmt.Sprintf("received weather data %+v", data), nil))
-		rj.dateSet.Add(data.Date)
 	}
 
 	log.Info(rj.getLogMessage("saveWeatherData", "all weather data was saved!", nil))
@@ -250,7 +263,12 @@ func (rj *RainJoiner) saveWeatherData() error {
 // processTripData performs the logic of the join operation. When a trip arrives, if it's date is in dateSet
 // we update the
 func (rj *RainJoiner) processTripData() error {
-	consumer, err := rj.getConsumer(tripsStr)
+	exchangeName, err := rj.getExchangeNameForDataType(tripsStr)
+	if err != nil {
+		return err
+	}
+
+	consumer, err := rj.rabbitMQ.GetConsumerForExchange(exchangeName)
 	if err != nil {
 		return err
 	}
@@ -258,43 +276,47 @@ func (rj *RainJoiner) processTripData() error {
 	log.Info(rj.getLogMessage("processTripData", "start consuming trips messages", nil))
 	eofTripsString := rj.GetExpectedEOFString(tripsStr)
 
+outerTripsLoop:
 	for message := range consumer {
-		var tripData trip.TripData
-		err = json.Unmarshal(message.Body, &tripData)
+		var tripsData []*trip.TripData
+		err = json.Unmarshal(message.Body, &tripsData)
 		if err != nil {
 			log.Error(rj.getLogMessage("saveWeatherData", "error unmarshalling data", ErrUnmarshallingTripData))
 			return err
 		}
 
-		metadata := tripData.GetMetadata()
+		for idx := range tripsData {
+			tripData := tripsData[idx]
+			metadata := tripData.GetMetadata()
 
-		if metadata.GetType() == rj.config.EOFType {
-			// sanity checks
-			if metadata.GetCity() != rj.GetCity() {
-				panic(fmt.Sprintf("received an EOF message with of another city: Expected: %s - Got: %s", rj.GetCity(), metadata.GetCity()))
-			}
-			if metadata.GetMessage() != eofTripsString {
-				panic(fmt.Sprintf("received an EOF message with an invalid format: Expected: %s - Got: %s", eofTripsString, metadata.GetMessage()))
-			}
+			if metadata.GetType() == rj.config.EOFType {
+				// sanity checks
+				if metadata.GetCity() != rj.GetCity() {
+					panic(fmt.Sprintf("received an EOF message with of another city: Expected: %s - Got: %s", rj.GetCity(), metadata.GetCity()))
+				}
+				if metadata.GetMessage() != eofTripsString {
+					panic(fmt.Sprintf("received an EOF message with an invalid format: Expected: %s - Got: %s", eofTripsString, metadata.GetMessage()))
+				}
 
-			log.Info(rj.getLogMessage("saveWeatherData", fmt.Sprintf("EOF received: %s", metadata.GetMessage()), nil))
-			break
-		}
-
-		log.Debug(rj.getLogMessage("processTripData", fmt.Sprintf("received trip data %+v", tripData), nil))
-
-		if rj.dateSet.Contains(tripData.StartDate) {
-			key := tripData.StartDate.String()
-			rainfallAccumulator, ok := rj.result[key]
-			if !ok {
-				newRainfallAccumulator := rainjoiner.NewRainfallAccumulator()
-				newRainfallAccumulator.UpdateAccumulator(tripData.Duration)
-				rj.result[key] = newRainfallAccumulator
-				continue
+				log.Info(rj.getLogMessage("saveWeatherData", fmt.Sprintf("EOF received: %s", metadata.GetMessage()), nil))
+				break outerTripsLoop
 			}
 
-			rainfallAccumulator.UpdateAccumulator(tripData.Duration)
-			rj.result[key] = rainfallAccumulator
+			log.Debug(rj.getLogMessage("processTripData", fmt.Sprintf("received trip data %+v", tripData), nil))
+
+			if rj.dateSet.Contains(tripData.StartDate) {
+				key := tripData.StartDate.String()
+				rainfallAccumulator, ok := rj.result[key]
+				if !ok {
+					newRainfallAccumulator := rainjoiner.NewRainfallAccumulator()
+					newRainfallAccumulator.UpdateAccumulator(tripData.Duration)
+					rj.result[key] = newRainfallAccumulator
+					continue
+				}
+
+				rainfallAccumulator.UpdateAccumulator(tripData.Duration)
+				rj.result[key] = rainfallAccumulator
+			}
 		}
 	}
 
