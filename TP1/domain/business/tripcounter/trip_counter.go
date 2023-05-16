@@ -77,3 +77,31 @@ func (tc *TripCounter) DuplicateValues(otherTripCounter *TripCounter) bool {
 
 	return tc.Counter >= 2*otherTripCounter.GetCounter()
 }
+
+// TripCounterCompound contains two counters. The main idea is to send just struct over the net with data
+type TripCounterCompound struct {
+	Metadata      entities.Metadata `json:"metadata"`
+	StationName   string            `json:"name"`
+	StationID     int               `json:"station_id"`
+	FirstCounter  int               `json:"first_counter"`
+	SecondCounter int               `json:"second_counter"`
+}
+
+func NewTripCounterCompound(tripCounter1 *TripCounter, tripCounter2 *TripCounter, metadata entities.Metadata) *TripCounterCompound {
+	return &TripCounterCompound{
+		Metadata:      metadata,
+		StationName:   tripCounter1.StationName,
+		StationID:     tripCounter1.StationID,
+		FirstCounter:  tripCounter1.GetCounter(),
+		SecondCounter: tripCounter2.GetCounter(),
+	}
+}
+
+func (tcc *TripCounterCompound) Merge(otherTripCounterCompound *TripCounterCompound) {
+	tcc.FirstCounter += otherTripCounterCompound.FirstCounter
+	tcc.SecondCounter += otherTripCounterCompound.SecondCounter
+}
+
+func (tcc *TripCounterCompound) DuplicateValues() bool {
+	return tcc.SecondCounter >= 2*tcc.FirstCounter
+}
