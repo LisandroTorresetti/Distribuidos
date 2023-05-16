@@ -1,0 +1,23 @@
+eof_type: "EOF"
+previous_stage: "rainjoiner"
+
+eof_queue_config: # queue of the eof manager
+  name: "eof-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
+
+input_queue: # messages from Rain Joiner to Rain Handler
+  name: "rainjoiner-rainhandler-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
+
+output_response_queue: # messages from Rain Handler to Server
+  name: "response-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
