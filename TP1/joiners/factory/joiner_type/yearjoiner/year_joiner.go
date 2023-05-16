@@ -188,10 +188,6 @@ func (yj *YearJoiner) SendResult() error {
 		counter2017 := tripCounterMap[year2017]
 		counter2017.Metadata = metadata2017
 		data2017 = append(data2016, counter2017)
-
-		if counter2017.DuplicateValues(counter2016) {
-			log.Debugf("LICHITA estacion que duplico viajes: %s", counter2016.StationName)
-		}
 	}
 
 	data2016Bytes, err := json.Marshal(data2016)
@@ -283,7 +279,6 @@ outerStationsLoop:
 		// analyze each station
 		for idx := range stationsData {
 			stationData := stationsData[idx]
-			log.Debugf("LICHITA: guardando estacion: %+v", stationData)
 			metadata := stationData.GetMetadata()
 
 			// sanity check
@@ -306,7 +301,7 @@ outerStationsLoop:
 				panic(fmt.Sprintf("received an invalid year. Expected years are: %v. Got: %v", yj.config.ValidYears, stationData.YearID))
 			}
 
-			mapKey := getStationsMapKey(stationData.Code, stationData.YearID)
+			mapKey := stationData.GetPrimaryKey()
 			_, ok := yj.stationsMap[mapKey]
 			if !ok {
 				yj.stationsMap[mapKey] = stationData
@@ -345,7 +340,6 @@ outerTripsLoop:
 
 		for idx := range tripsData {
 			tripData := tripsData[idx]
-			log.Debugf("LICHITA: analizando TRIP: %+v", tripData)
 			metadata := tripData.GetMetadata()
 
 			// sanity check
@@ -372,7 +366,7 @@ outerTripsLoop:
 			stationKey := getStationsMapKey(tripData.StartStationCode, tripData.YearID)
 			stationData, ok := yj.stationsMap[stationKey]
 			if !ok {
-				log.Debug(yj.getLogMessage("processTripData", fmt.Sprintf("dont have data of station %s", stationKey), nil))
+				log.Debug(yj.getLogMessage("processTripData", fmt.Sprintf("dont have data of station %s, AKA it was not used in %v", stationKey, tripData.YearID), nil))
 				continue
 			}
 			stationIDStr := strconv.Itoa(tripData.StartStationCode)
@@ -386,7 +380,6 @@ outerTripsLoop:
 				yearCounter.UpdateCounter()
 				newCounterMap[tripData.YearID] = yearCounter
 				yj.joinResult[stationIDStr] = newCounterMap
-				log.Debugf("LICHITA AGREGUE ESTE DATO AL JOIN: stationID: %s - 2016: %v - 2017: %v", stationIDStr, newCounterMap[2016].Counter, newCounterMap[2017].StationID)
 				continue
 			}
 
@@ -394,7 +387,6 @@ outerTripsLoop:
 			yearCounter.UpdateCounter()
 			stationDataCounters[tripData.YearID] = yearCounter
 			yj.joinResult[stationIDStr] = stationDataCounters
-			log.Debugf("LICHITA AGREGUE ESTE DATO AL JOIN: stationID: %s - 2016: %v - 2017: %v", stationIDStr, stationDataCounters[2016].Counter, stationDataCounters[2017].StationID)
 		}
 	}
 
@@ -417,11 +409,3 @@ func (yj *YearJoiner) initializeCounterMap(stationData *station.StationData) map
 func getStationsMapKey(stationCode int, yearID int) string {
 	return fmt.Sprintf("%v-%v", stationCode, yearID)
 }
-
-/*
-1. Existe Obe-2016 - trip 2016 ---> Guardas bien
-2. Existe Obe-2016, no 2017 - trip 2017 ---> Actualizas obe-2016 (no muto la estacion)
-3. Existe Obe-2017, no 2016 - trip 2016 ---> No hace nada? no existia la estacion
-4. Existe Obe-2016 y Obe-2017 - trip 2016 ---> actualiza solo obe-2016
-5. Existe Obe-2016 y Obe-2017 - trip 2017 ---> actualiza solo obe-2017
-*/
