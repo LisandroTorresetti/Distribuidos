@@ -5,14 +5,16 @@ import (
 	"tp1/communication"
 	"tp1/queryhandlers/factory/handler_type/cityhandler"
 	cityHandlerConfig "tp1/queryhandlers/factory/handler_type/cityhandler/config"
+	"tp1/queryhandlers/factory/handler_type/duplicateshandler"
+	duplicatesHandlerConfig "tp1/queryhandlers/factory/handler_type/duplicateshandler/config"
 	"tp1/queryhandlers/factory/handler_type/rainhandler"
 	rainHandlerConfig "tp1/queryhandlers/factory/handler_type/rainhandler/config"
 )
 
 var (
-	rainHandlerType = "rain-handler"
-	//duplicatesHandler = "duplicates-handler"
-	cityHandler = "city-handler"
+	rainHandlerType   = "rain-handler"
+	duplicatesHandler = "duplicates-handler"
+	cityHandler       = "city-handler"
 )
 
 type Handler interface {
@@ -51,14 +53,14 @@ func NewQueryHandler(handlerType string) (Handler, error) {
 		return cityhandler.NewCityHandler(rabbitMQ, cfg), nil
 	}
 
-	/*if handlerType == yearJoinerType {
-		cfg, err := yearJoinerConfig.LoadConfig()
+	if handlerType == duplicatesHandler {
+		cfg, err := duplicatesHandlerConfig.LoadConfig()
 		if err != nil {
 			return nil, err
 		}
 
-		return yearjoiner.NewYearJoiner(rabbitMQ, cfg), nil
-	}*/
+		return duplicateshandler.NewDuplicatesHandler(rabbitMQ, cfg), nil
+	}
 
 	return nil, fmt.Errorf("[method: NewQueryHandler][status: error] Invalid handler type %s", handlerType)
 }
