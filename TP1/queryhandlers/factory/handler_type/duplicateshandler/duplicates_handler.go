@@ -133,6 +133,8 @@ func (dh *DuplicatesHandler) SendResponse() error {
 		}
 	}
 
+	log.Debugf("LICHITA QUERY 2: %v", stationNames)
+
 	responseMessage := fmt.Sprintf("Query %s result: %s", queryID, strings.Join(stationNames, "\n\t-"))
 	queryResponse := queryresponse.NewQueryResponse(queryID, responseMessage, handlerType, "response")
 	queryResponseBytes, err := json.Marshal(queryResponse)

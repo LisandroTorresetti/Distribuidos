@@ -124,6 +124,8 @@ func (rh *RainHandler) GenerateResponse() error {
 func (rh *RainHandler) SendResponse() error {
 	avgDuration := rh.resultHandler.GetAverageDuration()
 	response := fmt.Sprintf("Query %s result: AVG duration %.4f", queryID, avgDuration)
+	log.Debugf("LICHITA: %s", response)
+
 	queryResponse := queryresponse.NewQueryResponse(queryID, response, handlerType, "response")
 	queryResponseBytes, err := json.Marshal(queryResponse)
 	if err != nil {

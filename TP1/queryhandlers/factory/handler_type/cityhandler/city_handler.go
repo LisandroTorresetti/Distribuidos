@@ -138,6 +138,7 @@ func (ch *CityHandler) SendResponse() error {
 			stationNames = append(stationNames, accumulator.StationName)
 		}
 	}
+	log.Debugf("LICHITA QUERY 3: %v", stationNames)
 
 	response := fmt.Sprintf("Query %s result: %s", queryID, strings.Join(stationNames, "\n\t-"))
 	queryResponse := queryresponse.NewQueryResponse(queryID, response, handlerType, "response")
