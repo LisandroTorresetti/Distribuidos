@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	queryID         = "2"
+	queryID         = "3"
 	handlerType     = "city-handler"
 	handlerStr      = "cityhandler"
 	contentTypeJson = "application/json"

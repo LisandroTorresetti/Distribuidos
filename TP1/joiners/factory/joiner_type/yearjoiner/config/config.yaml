@@ -1,4 +1,5 @@
 eof_type: "EOF"
+output_queue_name: "yearjoiner-duplicateshandler-%s-queue"
 
 valid_years:
   - 2016
@@ -33,7 +34,7 @@ eof_queue_config: # queue of the eof manager
   no_wait: false
 
 output_duplicates_handler_queue: # messages from Year Joiner to Duplicates Handler
-  name: "yearjoiner-duplicateshandler-queue"
+  name: "yearjoiner-duplicateshandler-%s-queue"
   durable: true
   delete_when_unused: false
   exclusive: true
