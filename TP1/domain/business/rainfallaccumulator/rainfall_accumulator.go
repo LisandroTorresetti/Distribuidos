@@ -35,3 +35,12 @@ func (ra *RainfallAccumulator) GetAverageDuration() float64 {
 	}
 	return ra.TotalDuration / float64(ra.Counter)
 }
+
+func (ra *RainfallAccumulator) Merge(other *RainfallAccumulator) {
+	ra.Counter += other.Counter
+	ra.TotalDuration += other.TotalDuration
+}
+
+func (ra *RainfallAccumulator) GetMetadata() entities.Metadata {
+	return ra.Metadata
+}
