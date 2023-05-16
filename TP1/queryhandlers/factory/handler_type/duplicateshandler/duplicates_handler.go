@@ -156,7 +156,7 @@ func (dh *DuplicatesHandler) SendResponse() error {
 
 // SendEOF notifies the EOF Manager that the work of this handler is done
 func (dh *DuplicatesHandler) SendEOF() error {
-	eofData := eof.NewEOF("", handlerType, dh.GetEOFString())
+	eofData := eof.NewEOF(dh.config.City, handlerType, dh.GetEOFString())
 	eofDataBytes, err := json.Marshal(eofData)
 	if err != nil {
 		return fmt.Errorf("%w: error marshalling EOF message: %s", err, err.Error())

@@ -18,6 +18,7 @@ const (
 	handlerType     = "rain-handler"
 	handlerStr      = "rainhandler"
 	contentTypeJson = "application/json"
+	wildcardCity    = "nn"
 )
 
 type RainHandler struct {
@@ -54,12 +55,12 @@ func (rh *RainHandler) GetType() string {
 
 // GetEOFString returns the Rain Handler EOF String.
 func (rh *RainHandler) GetEOFString() string {
-	return fmt.Sprintf("eof.%s", handlerStr)
+	return fmt.Sprintf("eof.%s.%s", handlerStr, wildcardCity)
 }
 
 // GetExpectedEOFString returns Rain Joiner's expected EOF
 func (rh *RainHandler) GetExpectedEOFString() string {
-	return fmt.Sprintf("eof.%s", rh.config.PreviousStage)
+	return fmt.Sprintf("eof.%s.%s", rh.config.PreviousStage, wildcardCity)
 }
 
 // DeclareQueues declares non-anonymous queues for Rain Handler
@@ -146,7 +147,7 @@ func (rh *RainHandler) SendResponse() error {
 
 // SendEOF notifies the EOF Manager that the work of this handler is done
 func (rh *RainHandler) SendEOF() error {
-	eofData := eof.NewEOF("", handlerType, rh.GetEOFString())
+	eofData := eof.NewEOF(wildcardCity, handlerType, rh.GetEOFString())
 	eofDataBytes, err := json.Marshal(eofData)
 	if err != nil {
 		return fmt.Errorf("%w: error marshalling EOF message: %s", err, err.Error())

@@ -52,7 +52,7 @@ func (ch *CityHandler) GetType() string {
 }
 
 func (ch *CityHandler) GetEOFString() string {
-	return fmt.Sprintf("eof.%s", handlerStr)
+	return fmt.Sprintf("eof.%s.%s", handlerStr, ch.config.City)
 }
 
 func (ch *CityHandler) GetExpectedEOFString() string {
@@ -161,7 +161,7 @@ func (ch *CityHandler) SendResponse() error {
 
 // SendEOF notifies the EOF Manager that the work of this handler is done
 func (ch *CityHandler) SendEOF() error {
-	eofData := eof.NewEOF("", handlerType, ch.GetEOFString())
+	eofData := eof.NewEOF(ch.config.City, handlerType, ch.GetEOFString())
 	eofDataBytes, err := json.Marshal(eofData)
 	if err != nil {
 		return fmt.Errorf("%w: error marshalling EOF message: %s", err, err.Error())

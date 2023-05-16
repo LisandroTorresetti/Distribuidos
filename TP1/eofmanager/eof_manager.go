@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"regexp"
+	"strings"
 	"time"
 	"tp1/communication"
 	"tp1/domain/entities"
@@ -17,45 +17,24 @@ const (
 	eofQueue        = "eof-queue"
 	contentTypeJson = "application/json"
 	eofManagerStr   = "EOF-Manager"
+	topicStr        = "topic"
+	pong            = "PONG"
+	wildcardCity    = "nn"
 )
 
 type eofConfig struct {
-	EOFType   string                    `yaml:"eof_type"`
-	Counters  map[string]map[string]int `yaml:"counters"`
-	Queues    []string                  `yaml:"queues"`
-	Exchanges []string                  `yaml:"exchanges"`
-	Responses map[string][]string       `yaml:"responses"`
+	EOFType       string                    `yaml:"eof_type"`
+	Counters      map[string]map[string]int `yaml:"counters"`
+	Queues        []string                  `yaml:"queues"`
+	Exchanges     []string                  `yaml:"exchanges"`
+	Responses     map[string][]string       `yaml:"responses"`
+	SpecialCases  []string                  `yaml:"special_cases"`
+	QueryHandlers []string                  `yaml:"query_handlers"`
 }
 
 type EOFManager struct {
 	config   *eofConfig
 	rabbitMQ *communication.RabbitMQ
-}
-
-type EOFMessageComponents struct {
-	Stage     string
-	City      string
-	ExtraData string
-}
-
-func getEOFComponents(eofMessage string) EOFMessageComponents {
-	regex := regexp.MustCompile(`^eof\.([^.]+)\.([^.]+)(.*)`)
-	matches := regex.FindStringSubmatch(eofMessage)
-
-	if len(matches) < 3 {
-		panic(fmt.Sprintf("[EOF Manager] invalid eof message %s", eofMessage))
-	}
-
-	extraData := ""
-	if len(matches) == 4 {
-		extraData = matches[3]
-	}
-
-	return EOFMessageComponents{
-		Stage:     matches[1],
-		City:      matches[2],
-		ExtraData: extraData,
-	}
 }
 
 func NewEOFManager(config *eofConfig, rabbitMQ *communication.RabbitMQ) *EOFManager {
@@ -145,8 +124,18 @@ func (eof *EOFManager) StartManaging() {
 			}
 
 			eof.config.Counters[stage][city] = updatedValue
-			if updatedValue == 0 {
-				err = eof.sendStartProcessingMessage(ctx, eofMetadata)
+
+			notify := false
+			if utils.ContainsString(stage, eof.config.SpecialCases) {
+				notify = eof.specialCaseEnds(stage)
+			} else if utils.ContainsString(stage, eof.config.QueryHandlers) {
+				notify = eof.allQueriesProcessed()
+			} else {
+				notify = updatedValue == 0
+			}
+
+			if notify {
+				err = eof.sendEOFToNextStage(ctx, eofMetadata)
 				if err != nil {
 					panic(err.Error())
 				}
@@ -158,7 +147,16 @@ func (eof *EOFManager) StartManaging() {
 	log.Errorf("[EOF Manager] got some error handling EOFs: %s", err.Error())
 }
 
-func (eof *EOFManager) sendStartProcessingMessage(ctx context.Context, eofMetadata entities.Metadata) error {
+// sendEOFToNextStage sends an eof to the next stages of the actual one
+func (eof *EOFManager) sendEOFToNextStage(ctx context.Context, eofMetadata entities.Metadata) error {
+	if eof.publishInExchange(eofMetadata.GetStage()) {
+		return eof.handlePublishInExchange(ctx, eofMetadata)
+	}
+
+	return eof.handlePublishInQueue(ctx, eofMetadata)
+}
+
+func (eof *EOFManager) handlePublishInExchange(ctx context.Context, eofMetadata entities.Metadata) error {
 	targetExchanges, ok := eof.config.Responses[eofMetadata.GetStage()]
 	if !ok {
 		panic(fmt.Sprintf("[EOF Manager] cannot found exchange to send response for key %s", eofMetadata.GetStage()))
@@ -182,4 +180,70 @@ func (eof *EOFManager) sendStartProcessingMessage(ctx context.Context, eofMetada
 	}
 	log.Infof("[EOF Manager] message sent correctly to exchanges: %v", targetExchanges)
 	return nil
+}
+
+func (eof *EOFManager) handlePublishInQueue(ctx context.Context, eofMetadata entities.Metadata) error {
+	targetQueues, ok := eof.config.Responses[eofMetadata.GetStage()]
+	if !ok {
+		panic(fmt.Sprintf("[EOF Manager] cannot found queue to send response for key %s", eofMetadata.GetStage()))
+	}
+
+	eofMessage := eofMetadata.GetMessage()
+	if utils.ContainsString(eofMetadata.GetStage(), eof.config.SpecialCases) {
+		eofMessage = fmt.Sprintf("eof.%s.%s", eofMetadata.GetStage(), wildcardCity)
+	} else if utils.ContainsString(eofMetadata.GetStage(), eof.config.SpecialCases) {
+		eofMessage = pong
+	}
+
+	eofToSend := eofEntity.NewEOF(eofMetadata.GetCity(), eofManagerStr, eofMessage) // eg message: eof.weather.montreal
+	eofToSendBytes, err := json.Marshal([]*eofEntity.EOFData{eofToSend})
+	if err != nil {
+		panic(fmt.Sprintf("[EOF Manager] error marshalling EOF message to send: %s", err.Error()))
+	}
+
+	targetQueueName := targetQueues[0]
+	formatName := !utils.ContainsString(eofMetadata.GetStage(), eof.config.SpecialCases) &&
+		!utils.ContainsString(eofMetadata.GetStage(), eof.config.QueryHandlers)
+	if formatName {
+		// we have to parse it
+		targetQueueName = fmt.Sprintf(targetQueueName, eofMetadata.GetCity())
+	}
+
+	err = eof.rabbitMQ.PublishMessageInQueue(ctx, targetQueueName, eofToSendBytes, contentTypeJson)
+	if err != nil {
+		panic(fmt.Sprintf("[EOF Manager] error publishing message in queue %s", targetQueueName))
+	}
+	return nil
+}
+
+// specialCaseEnds returns true if all counters of specialCase are in zero, otherwise false
+func (eof *EOFManager) specialCaseEnds(specialCase string) bool {
+	for _, counter := range eof.config.Counters[specialCase] {
+		if counter != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// allQueriesProcessed returns true if the counters of each query handler is in zero, otherwise false
+func (eof *EOFManager) allQueriesProcessed() bool {
+	for _, queryHandler := range eof.config.QueryHandlers {
+		for _, counter := range eof.config.Counters[queryHandler] {
+			if counter != 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// publishInExchange returns true if the stage needs to publish in an exchange, otherwise false
+func (eof *EOFManager) publishInExchange(stage string) bool {
+	targetExchanges, ok := eof.config.Responses[stage]
+	if !ok {
+		panic(fmt.Sprintf("[EOF Manager] cannot found exchange to send response for key %s", stage))
+	}
+
+	return strings.Contains(targetExchanges[0], topicStr)
 }

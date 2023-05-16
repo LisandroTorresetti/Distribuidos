@@ -1,6 +1,7 @@
 eof_type: "EOF"
+query_handlers: ["rain-handler", "city-handler", "duplicates-handler"]
+special_cases: ["rain-joiner"]
 
-# FIXME: update counters
 counters:
   weather-worker:
     montreal: 1
@@ -17,7 +18,7 @@ counters:
     washington: 1
     toronto: 1
 
-  rain-joiner:
+  rain-joiner: #special case
     montreal: 1
     washington: 1
     toronto: 1
@@ -30,14 +31,29 @@ counters:
   city-joiner:
     montreal: 1
 
+  rain-handler:
+    nn: 1
+
+  duplicates-handler:
+    montreal: 1
+    washington: 1
+    toronto: 1
+
+  city-handler:
+    montreal: 1
+
 responses:
   weather-worker: ["weather-rainjoiner-topic"]
   trips-worker: ["trips-rainjoiner-topic", "trips-cityjoiner-topic", "trips-yearjoiner-topic"]
   stations-worker: ["stations-cityjoiner-topic", "stations-yearjoiner-topic"]
 
   rain-joiner: ["rainjoiner-rainhandler-queue"]
-  city-joiner: ["cityjoiner-cityhandler-queue"]
-  year-joiner: ["cityjoiner-yeargrouper2016-queue", "cityjoiner-yeargrouper2017-queue"]
+  city-joiner: ["cityjoiner-cityhandler-%s-queue"]
+  year-joiner: ["cityjoiner-duplicateshandler-%s-queue"]
+
+  rain-handler: ["response-queue"]
+  city-handler: ["response-queue"]
+  duplicates-handler: ["response-queue"]
 
 
 eof_queue_config:
@@ -51,5 +67,3 @@ exchanges:
   - weather-rainjoiner-topic
   - stations-cityjoiner-topic
   - stations-yearjoiner-topic
-
-# ToDo: declare the rest of the exchanges and queues
