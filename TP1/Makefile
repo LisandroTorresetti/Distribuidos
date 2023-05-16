@@ -6,6 +6,7 @@ build-images:
 	docker build -f ./client/Dockerfile -t "client:latest" .
 	docker build -f ./workers/Dockerfile -t "workers:latest" .
 	docker build -f ./joiners/Dockerfile -t "joiners:latest" .
+	docker build -f ./queryhandlers/Dockerfile -t "queryhandlers:latest" .
 	docker build -f ./eofmanager/Dockerfile -t "eofmanager:latest" .
 .PHONY: build-images
 
