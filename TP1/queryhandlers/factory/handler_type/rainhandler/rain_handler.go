@@ -43,6 +43,10 @@ func (rh *RainHandler) getLogMessage(method string, message string, err error) s
 	return fmt.Sprintf("[handler: %s][query: %s][method: %s][status: OK] %s", handlerType, queryID, method, message)
 }
 
+func (rh *RainHandler) GetQueryID() string {
+	return queryID
+}
+
 // GetType returns handler type
 func (rh *RainHandler) GetType() string {
 	return handlerType
@@ -51,10 +55,6 @@ func (rh *RainHandler) GetType() string {
 // GetEOFString returns the Rain Handler EOF String.
 func (rh *RainHandler) GetEOFString() string {
 	return fmt.Sprintf("eof.%s", handlerStr)
-}
-
-func (rh *RainHandler) GetQueryID() string {
-	return queryID
 }
 
 // GetExpectedEOFString returns Rain Joiner's expected EOF
