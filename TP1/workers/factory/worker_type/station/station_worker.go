@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	dateLayout        = "2006-01-02"
 	latitudeBound     = 90
 	longitudeBound    = 180
 	stationWorkerType = "stations-worker"
@@ -200,7 +199,10 @@ func (sw *StationWorker) getStationData(data string) (*station.StationData, erro
 		return nil, fmt.Errorf("%s: %w", dataErrors.ErrStationCodeType, dataErrors.ErrInvalidStationData)
 	}
 
-	latitude, err := strconv.ParseFloat(dataSplit[sw.config.ValidColumnsIndexes.Latitude], 64)
+	latitude := dataSplit[sw.config.ValidColumnsIndexes.Latitude]
+	longitude := dataSplit[sw.config.ValidColumnsIndexes.Longitude]
+
+	/*latitude, err := strconv.ParseFloat(dataSplit[sw.config.ValidColumnsIndexes.Latitude], 64)
 	if err != nil {
 		log.Debugf("Invalid latitude: %v", dataSplit[sw.config.ValidColumnsIndexes.Latitude])
 		return nil, fmt.Errorf("%s: %w", dataErrors.ErrInvalidLatitude, dataErrors.ErrInvalidStationData)
@@ -210,7 +212,7 @@ func (sw *StationWorker) getStationData(data string) (*station.StationData, erro
 	if err != nil {
 		log.Debugf("Invalid longitude: %v", dataSplit[sw.config.ValidColumnsIndexes.Longitude])
 		return nil, fmt.Errorf("%s: %w", dataErrors.ErrInvalidLongitude, dataErrors.ErrInvalidStationData)
-	}
+	}*/
 
 	yearID, err := strconv.Atoi(dataSplit[sw.config.ValidColumnsIndexes.YearID])
 	if err != nil {
@@ -236,7 +238,7 @@ func (sw *StationWorker) isValid(stationData *station.StationData) bool {
 	validData := true
 	var invalidReasons []string
 
-	latitude := stationData.Latitude
+	/*latitude := stationData.Latitude
 	longitude := stationData.Longitude
 
 	if !(-latitudeBound <= latitude && latitude <= latitudeBound) {
@@ -247,7 +249,7 @@ func (sw *StationWorker) isValid(stationData *station.StationData) bool {
 	if !(-longitudeBound <= longitude && longitude <= longitudeBound) {
 		validData = false
 		invalidReasons = append(invalidReasons, "longitude out of bound")
-	}
+	}*/
 
 	if stationData.Code < 0 {
 		invalidReasons = append(invalidReasons, "Station code < 0")

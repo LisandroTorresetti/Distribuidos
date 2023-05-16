@@ -6,6 +6,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/umahmood/haversine"
+	"strconv"
 	"strings"
 	"time"
 	"tp1/communication"
@@ -134,10 +135,10 @@ func (cj *CityJoiner) DeclareExchanges() error {
 
 // JoinData joins the data from stations and trips. The flow of this function is:
 // 1. Start consuming from the input exchange related with stations data
-// 2. While we receive this data we save it in a map[string]*station.StationData
+// 2. While we receive this data we save it in a map[string]*station.StationData, the key is stationID-yearID, doing this we know when a station was used
 // 3. When we receive the message eof.stations.city, we stop listening data about stations. The city in EOF must match the city to join at this stage
 // 4. Start consuming from the input exchange related with trips data
-// 5. While we receive this data we perform a join with the map defined in step 2
+// 5. While we receive this data we perform a join with the map defined in step 2. The map of this step has keys equal to the stationID (NOT stationID-yearID)
 // 6. When we receive the message eof.trips.city, we stop listening data about trips
 func (cj *CityJoiner) JoinData() error {
 	err := cj.saveStationsData()
@@ -238,6 +239,12 @@ outerStationsLoop:
 		// analyze each station
 		for idx := range stationsData {
 			stationData := stationsData[idx]
+
+			// sanity check: there are stations that does not have latitude or longitude set, we skip them
+			if !stationData.HasValidCoordinates() {
+				continue
+			}
+
 			metadata := stationData.GetMetadata()
 
 			// sanity check
@@ -258,10 +265,10 @@ outerStationsLoop:
 				break outerStationsLoop
 			}
 
-			mapKey := getStationsMapKey(stationData.Code, stationData.YearID)
+			mapKey := stationData.GetPrimaryKey()
 			_, ok := cj.stationsMap[mapKey]
 			if !ok {
-				cj.stationsMap[mapKey] = stationData
+				cj.stationsMap[mapKey] = stationData // saves if the station was used in some year
 			}
 		}
 	}
@@ -330,16 +337,17 @@ outerTripsLoop:
 
 			distance := calculateDistance(startStation, endStation)
 
-			distanceAccumulator, ok := cj.joinResult[endStationKey]
+			endStationIDStr := strconv.Itoa(tripData.EndStationCode)
+			distanceAccumulator, ok := cj.joinResult[endStationIDStr] // We need to save the ID only, because the same station is used in different years
 			if !ok {
 				// the data about the end stations wasn't in joinResult, we have to add it
 				newDistanceAccumulator := distanceaccumulator.NewDistanceAccumulator(endStation.Name)
 				newDistanceAccumulator.UpdateAccumulator(distance)
-				cj.joinResult[endStationKey] = newDistanceAccumulator
+				cj.joinResult[endStationIDStr] = newDistanceAccumulator
 				continue
 			}
 			distanceAccumulator.UpdateAccumulator(distance)
-			cj.joinResult[endStationKey] = distanceAccumulator
+			cj.joinResult[endStationIDStr] = distanceAccumulator
 		}
 	}
 
@@ -378,8 +386,10 @@ func getStationsMapKey(stationCode int, yearID int) string {
 
 // calculateDistance returns the distance between two stations using haversine formula
 func calculateDistance(startStation *station.StationData, endStation *station.StationData) float64 {
-	station1 := haversine.Coord{Lat: startStation.Latitude, Lon: startStation.Longitude}
-	station2 := haversine.Coord{Lat: endStation.Latitude, Lon: endStation.Longitude}
+	latStartStation, longStartStation := startStation.GetCoordinates()
+	latEndStation, longEndStation := endStation.GetCoordinates()
+	station1 := haversine.Coord{Lat: latStartStation, Lon: longStartStation}
+	station2 := haversine.Coord{Lat: latEndStation, Lon: longEndStation}
 
 	_, km := haversine.Distance(station1, station2)
 	return km
