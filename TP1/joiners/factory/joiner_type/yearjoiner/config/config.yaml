@@ -1,0 +1,47 @@
+eof_type: "EOF"
+
+valid_years:
+  - 2016
+  - 2017
+
+exchanges:
+  exchange_input_stations_city_joiner: # messages from Station Worker to Year Joiner
+    name: "stations-yearjoiner-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
+
+  exchange_input_trips_city_joiner: # messages from Trip Worker to Year Joiner
+    name: "trips-yearjoiner-topic"
+    type: "topic"
+    durable: true
+    auto_deleted: false
+    internal: false
+    no_wait: false
+
+input_exchanges:
+  trips: "trips-yearjoiner-topic"
+  stations: "stations-yearjoiner-topic"
+
+eof_queue_config: # queue of the eof manager
+  name: "eof-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
+
+output_yeargrouper2016_queue: # messages from Year Joiner to Year Grouper 2016
+  name: "cityjoiner-yeargrouper2016-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
+
+output_yeargrouper2017_queue: # messages from Year Joiner to Year Grouper 2017
+  name: "cityjoiner-yeargrouper2017-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false

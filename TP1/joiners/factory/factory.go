@@ -7,6 +7,8 @@ import (
 	cityJoinerConfig "tp1/joiners/factory/joiner_type/cityjoiner/config"
 	"tp1/joiners/factory/joiner_type/rainjoiner"
 	rainJoinerConfig "tp1/joiners/factory/joiner_type/rainjoiner/config"
+	"tp1/joiners/factory/joiner_type/yearjoiner"
+	yearJoinerConfig "tp1/joiners/factory/joiner_type/yearjoiner/config"
 )
 
 var (
@@ -55,7 +57,12 @@ func NewJoiner(joinerType string) (Joiner, error) {
 	}
 
 	if joinerType == yearJoinerType {
-		return nil, fmt.Errorf("[method: NewJoiner][status: error] Invalid joiner type %s", joinerType)
+		cfg, err := yearJoinerConfig.LoadConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		return yearjoiner.NewYearJoiner(rabbitMQ, cfg), nil
 	}
 
 	return nil, fmt.Errorf("[method: NewJoiner][status: error] Invalid joiner type %s", joinerType)
