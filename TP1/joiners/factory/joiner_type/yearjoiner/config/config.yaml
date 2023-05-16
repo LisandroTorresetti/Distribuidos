@@ -32,16 +32,24 @@ eof_queue_config: # queue of the eof manager
   exclusive: true
   no_wait: false
 
-output_yeargrouper2016_queue: # messages from Year Joiner to Year Grouper 2016
-  name: "cityjoiner-yeargrouper2016-queue"
+output_duplicates_handler_queue: # messages from Year Joiner to Duplicates Handler
+  name: "yearjoiner-duplicateshandler-queue"
   durable: true
   delete_when_unused: false
   exclusive: true
   no_wait: false
 
-output_yeargrouper2017_queue: # messages from Year Joiner to Year Grouper 2017
-  name: "cityjoiner-yeargrouper2017-queue"
-  durable: true
-  delete_when_unused: false
-  exclusive: true
-  no_wait: false
+# Rollback idea
+#output_yeargrouper2016_queue: # messages from Year Joiner to Year Grouper 2016
+#  name: "cityjoiner-yeargrouper2016-queue"
+#  durable: true
+#  delete_when_unused: false
+#  exclusive: true
+#  no_wait: false
+#
+#output_yeargrouper2017_queue: # messages from Year Joiner to Year Grouper 2017
+#  name: "cityjoiner-yeargrouper2017-queue"
+#  durable: true
+#  delete_when_unused: false
+#  exclusive: true
+#  no_wait: false

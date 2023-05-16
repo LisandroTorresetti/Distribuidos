@@ -98,8 +98,9 @@ func (yj *YearJoiner) GetExpectedEOFString(dataType string) string {
 func (yj *YearJoiner) DeclareQueues() error {
 	err := yj.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{
 		//cj.config.EOFQueueConfig,
-		yj.config.YearGrouper2016Queue,
-		yj.config.YearGrouper2017Queue,
+		//yj.config.YearGrouper2016Queue,
+		//yj.config.YearGrouper2017Queue,
+		yj.config.DuplicatesHandlerQueue,
 	})
 
 	if err != nil {
@@ -162,7 +163,7 @@ func (yj *YearJoiner) JoinData() error {
 }
 
 // SendResult summarizes the data from 2016 and 2017 and sends it to the corresponding queues
-func (yj *YearJoiner) SendResult() error {
+/*func (yj *YearJoiner) SendResult() error {
 	var data2016 []*tripcounter.TripCounter
 	var data2017 []*tripcounter.TripCounter
 
@@ -212,6 +213,41 @@ func (yj *YearJoiner) SendResult() error {
 	err = yj.rabbitMQ.PublishMessageInQueue(ctx, yj.config.YearGrouper2017Queue.Name, data2017Bytes, contentTypeJson)
 	if err != nil {
 		log.Error(yj.getLogMessage("SendResult", "error sending data2017", err))
+		return err
+	}
+
+	return nil
+}*/
+
+// SendResult summarizes the data from 2016 and 2017 and sends it to the corresponding queue
+func (yj *YearJoiner) SendResult() error {
+	var dataToSend []*tripcounter.TripCounterCompound
+
+	metadata := entities.NewMetadata(
+		yj.GetCity(),
+		tripCounterStr,
+		yearJoinerType,
+		"",
+	)
+
+	for _, tripCounterMap := range yj.joinResult {
+		counter2016 := tripCounterMap[year2016]
+		counter2017 := tripCounterMap[year2017]
+		compoundCounter := tripcounter.NewTripCounterCompound(counter2016, counter2017, metadata)
+		dataToSend = append(dataToSend, compoundCounter)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	dataToSendBytes, err := json.Marshal(dataToSend)
+	if err != nil {
+		log.Error(yj.getLogMessage("SendResult", "error marshalling data to send", err))
+	}
+
+	err = yj.rabbitMQ.PublishMessageInQueue(ctx, yj.config.DuplicatesHandlerQueue.Name, dataToSendBytes, contentTypeJson)
+	if err != nil {
+		log.Error(yj.getLogMessage("SendResult", "error sending data2016", err))
 		return err
 	}
 

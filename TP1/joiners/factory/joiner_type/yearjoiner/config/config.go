@@ -11,15 +11,16 @@ import (
 const configFilepath = "./joiners/factory/joiner_type/yearjoiner/config/config.yaml"
 
 type YearJoinerConfig struct {
-	ExchangesConfig      map[string]communication.ExchangeDeclarationConfig `yaml:"exchanges"`
-	EOFQueueConfig       communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
-	YearGrouper2016Queue communication.QueueDeclarationConfig               `yaml:"output_yeargrouper2016_queue"`
-	YearGrouper2017Queue communication.QueueDeclarationConfig               `yaml:"output_yeargrouper2017_queue"`
-	InputExchanges       map[string]string                                  `yaml:"input_exchanges"`
-	ValidYears           []int                                              `yaml:"valid_years"`
-	EOFType              string                                             `yaml:"eof_type"`
-	City                 string
-	ID                   string
+	ExchangesConfig map[string]communication.ExchangeDeclarationConfig `yaml:"exchanges"`
+	EOFQueueConfig  communication.QueueDeclarationConfig               `yaml:"eof_queue_config"`
+	//YearGrouper2016Queue communication.QueueDeclarationConfig               `yaml:"output_yeargrouper2016_queue"`
+	//YearGrouper2017Queue communication.QueueDeclarationConfig               `yaml:"output_yeargrouper2017_queue"`
+	DuplicatesHandlerQueue communication.QueueDeclarationConfig `yaml:"output_duplicates_handler_queue"`
+	InputExchanges         map[string]string                    `yaml:"input_exchanges"`
+	ValidYears             []int                                `yaml:"valid_years"`
+	EOFType                string                               `yaml:"eof_type"`
+	City                   string
+	ID                     string
 }
 
 func LoadConfig() (*YearJoinerConfig, error) {
