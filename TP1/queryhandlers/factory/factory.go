@@ -3,14 +3,16 @@ package factory
 import (
 	"fmt"
 	"tp1/communication"
+	"tp1/queryhandlers/factory/handler_type/cityhandler"
+	cityHandlerConfig "tp1/queryhandlers/factory/handler_type/cityhandler/config"
 	"tp1/queryhandlers/factory/handler_type/rainhandler"
-	"tp1/queryhandlers/factory/handler_type/rainhandler/config"
+	rainHandlerConfig "tp1/queryhandlers/factory/handler_type/rainhandler/config"
 )
 
 var (
 	rainHandlerType = "rain-handler"
 	//duplicatesHandler = "duplicates-handler"
-	//cityHandler = "city-handler"
+	cityHandler = "city-handler"
 )
 
 type Handler interface {
@@ -32,7 +34,7 @@ func NewQueryHandler(handlerType string) (Handler, error) {
 	}
 
 	if handlerType == rainHandlerType {
-		cfg, err := config.LoadConfig()
+		cfg, err := rainHandlerConfig.LoadConfig()
 		if err != nil {
 			return nil, err
 		}
@@ -40,16 +42,16 @@ func NewQueryHandler(handlerType string) (Handler, error) {
 		return rainhandler.NewRainHandler(rabbitMQ, cfg), nil
 	}
 
-	/*if handlerType == cityJoinerType {
-		cfg, err := cityJoinerConfig.LoadConfig()
+	if handlerType == cityHandler {
+		cfg, err := cityHandlerConfig.LoadConfig()
 		if err != nil {
 			return nil, err
 		}
 
-		return cityjoiner.NewCityJoiner(rabbitMQ, cfg), nil
+		return cityhandler.NewCityHandler(rabbitMQ, cfg), nil
 	}
 
-	if handlerType == yearJoinerType {
+	/*if handlerType == yearJoinerType {
 		cfg, err := yearJoinerConfig.LoadConfig()
 		if err != nil {
 			return nil, err

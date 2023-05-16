@@ -1,0 +1,24 @@
+eof_type: "EOF"
+previous_stage: "cityjoiner"
+threshold_distance: 6.0
+
+eof_queue_config: # queue of the eof manager
+  name: "eof-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
+
+input_queue: # messages from City Joiner to City Handler
+  name: "cityjoiner-cityhandler-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
+
+output_response_queue: # messages from City Handler to Server
+  name: "response-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: true
+  no_wait: false
