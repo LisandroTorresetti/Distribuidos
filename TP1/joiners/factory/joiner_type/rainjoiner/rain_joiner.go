@@ -78,7 +78,7 @@ func (rj *RainJoiner) GetRoutingKeys() []string {
 
 // GetEOFString returns the Rain Joiner EOF String.
 func (rj *RainJoiner) GetEOFString() string {
-	return fmt.Sprintf("eof.%s", rainJoinerStr)
+	return fmt.Sprintf("eof.%s.%s", rainJoinerStr, rj.GetCity())
 }
 
 // GetExpectedEOFString returns Rain Joiner's expected EOF

@@ -80,7 +80,7 @@ func (rh *RainHandler) DeclareQueues() error {
 }
 
 // GenerateResponse joins the data from all the previous stages. The flow of this function is:
-// 1. Start consuming from the input exchange
+// 1. Start consuming from the input queue
 // 2. Merge each message with the previous one in the resultHandler of the RainHandler
 // 3. Once an EOF message arrives, stop listening from the input queue
 func (rh *RainHandler) GenerateResponse() error {

@@ -341,7 +341,7 @@ outerTripsLoop:
 			distanceAccumulator, ok := cj.joinResult[endStationIDStr] // We need to save the ID only, because the same station is used in different years
 			if !ok {
 				// the data about the end stations wasn't in joinResult, we have to add it
-				newDistanceAccumulator := distanceaccumulator.NewDistanceAccumulator(endStation.Name)
+				newDistanceAccumulator := distanceaccumulator.NewDistanceAccumulator(endStation.Name, endStationIDStr)
 				newDistanceAccumulator.UpdateAccumulator(distance)
 				cj.joinResult[endStationIDStr] = newDistanceAccumulator
 				continue
