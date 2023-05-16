@@ -75,5 +75,5 @@ func (tc *TripCounter) DuplicateValues(otherTripCounter *TripCounter) bool {
 		panic("[TripCounter] cannot compare a TripCounter with itself")
 	}
 
-	return otherTripCounter.GetCounter() >= 2*tc.Counter
+	return tc.Counter >= 2*otherTripCounter.GetCounter()
 }
