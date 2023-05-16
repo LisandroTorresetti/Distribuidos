@@ -102,3 +102,10 @@ func getLogMessage(joiner factory.Joiner, message string, err error) string {
 	}
 	return fmt.Sprintf("[caller: main][joiner: %s][joinerID: %s][status: OK] %s", joiner.GetType(), joiner.GetID(), message)
 }
+
+/*
+oniChan := make(chan os.Signal, 1)
+	// catch SIGETRM or SIGINTERRUPT
+	signal.Notify(oniChan, syscall.SIGTERM, syscall.SIGINT)
+       <-oniChan
+*/

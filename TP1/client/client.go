@@ -237,7 +237,7 @@ func (c *Client) sendBatch(batch []string) error {
 // + Filename possible values: weather, stations, trips
 func (c *Client) getFilePath(city string, filename string) string {
 	if c.config.TestMode {
-		return fmt.Sprintf("./datasets/test/%s/%s_test.%s", city, filename, fileFormat)
+		return fmt.Sprintf("./datasets/tomitest/%s/%s_test.%s", city, filename, fileFormat)
 	}
 	return fmt.Sprintf("./datasets/%s/%s.%s", city, filename, fileFormat)
 }

@@ -18,7 +18,7 @@ services:
         condition: service_started
       ww_montreal_1:
         condition: service_started
-      city_joiner_montreal_1:
+      year_joiner_montreal_1:
         condition: service_started
 
   client:
@@ -64,7 +64,7 @@ services:
     depends_on:
       - eof_manager
       - rabbit
-      - city_joiner_montreal_1
+      - year_joiner_montreal_1
 
   tw_montreal_1:
     container_name: tw_montreal_1
@@ -81,7 +81,7 @@ services:
     depends_on:
       - eof_manager
       - rabbit
-      - city_joiner_montreal_1
+      - year_joiner_montreal_1
 
   sw_montreal_1:
     container_name: sw_montreal_1
@@ -98,16 +98,16 @@ services:
     depends_on:
       - eof_manager
       - rabbit
-      - city_joiner_montreal_1
+      - year_joiner_montreal_1
 
-  city_joiner_montreal_1:
-    container_name: city_joiner_montreal_1
+  year_joiner_montreal_1:
+    container_name: year_joiner_montreal_1
     image: joiners:latest
     entrypoint: ./main
     environment:
       - JOINER_ID=Q1
       - CITY=montreal
-      - JOINER_TYPE=city-joiner
+      - JOINER_TYPE=year-joiner
       - LOG_LEVEL=DEBUG
       - RABBIT_URL=amqp://guest:guest@rabbit:5672/
     networks:
