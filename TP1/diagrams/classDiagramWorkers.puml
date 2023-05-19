@@ -1,0 +1,53 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class RabbitMQ {
+    - connection
+    - channel
+    - exchangeToAnonymousQueueMap
+
+    + DeclareNonAnonymousQueues(queuesConfig)
+    + DeclareExchanges(exchangesConfig)
+    + PublishMessageInQueue(queueName, message, contentType)
+    + PublishMessageInExchange(exchange, routingKey, message, contentType)
+    + Bind(inputExchanges, routingKeys)
+    + GetConsumerForExchange(exchangeName)
+    + GetQueueConsumer(queueName)
+    + KillBadBunny()
+}
+
+interface IWorker {
+    GetID() int
+	GetType() string
+	GetRoutingKeys() []string
+	GetEOFString() string
+	DeclareQueues() error
+	DeclareExchanges() error
+	ProcessInputMessages() error
+	Kill() error
+}
+
+class WeatherWorker {
+    config WeatherConfig
+}
+
+class TripWorker {
+    config TripWorker
+}
+
+class StationWorker {
+    config TripWorker
+}
+
+IWorker <|.down. StationWorker
+IWorker <|.down. TripWorker
+IWorker <|.down. WeatherWorker
+
+RabbitMQ <-up- StationWorker
+RabbitMQ <-up- TripWorker
+RabbitMQ <-up- WeatherWorker
+
+
+
+
+@enduml

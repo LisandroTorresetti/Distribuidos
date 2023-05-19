@@ -1,0 +1,54 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class RabbitMQ {
+    - connection
+    - channel
+    - exchangeToAnonymousQueueMap
+
+    + DeclareNonAnonymousQueues(queuesConfig)
+    + DeclareExchanges(exchangesConfig)
+    + PublishMessageInQueue(queueName, message, contentType)
+    + PublishMessageInExchange(exchange, routingKey, message, contentType)
+    + Bind(inputExchanges, routingKeys)
+    + GetConsumerForExchange(exchangeName)
+    + GetQueueConsumer(queueName)
+    + KillBadBunny()
+}
+
+interface Handler {
+    GetQueryID() string
+	GetType() string
+	GetEOFString() string
+	GetExpectedEOFString() string
+	DeclareQueues() error
+	GenerateResponse() error
+	SendResponse() error
+	SendEOF() error
+	Kill() error
+}
+
+class RainHandler {
+    config RainHandlerConfig
+}
+
+class DuplicatesHandler {
+    config DuplicatesHandlerConfig
+}
+
+class CityHandler {
+    config CityHandlerConfig
+}
+
+Handler <|.down. CityHandler
+Handler <|.down. RainHandler
+Handler <|.down. DuplicatesHandler
+
+RabbitMQ <-up- CityHandler
+RabbitMQ <-up- RainHandler
+RabbitMQ <-up- DuplicatesHandler
+
+
+
+
+@enduml

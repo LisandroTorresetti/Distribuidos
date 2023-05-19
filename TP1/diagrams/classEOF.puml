@@ -1,0 +1,51 @@
+@startuml
+
+class RabbitMQ {
+    - connection
+    - channel
+    - exchangeToAnonymousQueueMap
+
+    + DeclareNonAnonymousQueues(queuesConfig)
+    + DeclareExchanges(exchangesConfig)
+    + PublishMessageInQueue(queueName, message, contentType)
+    + PublishMessageInExchange(exchange, routingKey, message, contentType)
+    + Bind(inputExchanges, routingKeys)
+    + GetConsumerForExchange(exchangeName)
+    + GetQueueConsumer(queueName)
+    + KillBadBunny()
+}
+
+class EOFManager {
+    - eofConfig
+    + DeclareQueues()
+    + DeclareExchanges()
+    + StartManaging()
+    - sendEOFToNextStage(eofMetadata)
+    - handlePublishInExchange(eofMetadata)
+    - handlePublishInQueue(eofMetadata)
+    - specialCaseEnds(specialCase)
+    - allQueriesProcessed()
+    - publishInExchange(stage)
+}
+
+class Metadata {
+    + City
+	+ Type
+	+ Stage
+	+ Message
+
+	+ GetType()
+	+ GetCity()
+	+ GetStage()
+	+ GetMessage()
+}
+
+class EOFData {
+   + GetMetadata()
+}
+
+RabbitMQ <-up- EOFManager
+EOFData <.left. EOFManager
+Metadata <-left- EOFData
+
+@enduml

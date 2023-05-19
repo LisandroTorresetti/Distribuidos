@@ -1,0 +1,57 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class RabbitMQ {
+    - connection
+    - channel
+    - exchangeToAnonymousQueueMap
+
+    + DeclareNonAnonymousQueues(queuesConfig)
+    + DeclareExchanges(exchangesConfig)
+    + PublishMessageInQueue(queueName, message, contentType)
+    + PublishMessageInExchange(exchange, routingKey, message, contentType)
+    + Bind(inputExchanges, routingKeys)
+    + GetConsumerForExchange(exchangeName)
+    + GetQueueConsumer(queueName)
+    + KillBadBunny()
+}
+
+interface Joiner {
+    GetID() string
+    GetType() string
+    GetCity() string
+    GetRoutingKeys() []string
+    GetEOFString() string
+    GetExpectedEOFString(data string) string
+    DeclareQueues() error
+    DeclareExchanges() error
+    JoinData() error
+    SendResult() error
+    SendEOF() error
+    Kill() error
+}
+
+class RainJoiner {
+    config RainJoinerConfig
+}
+
+class YearJoiner {
+    config YearJoinerConfig
+}
+
+class CityJoiner {
+    config CityJoinerConfig
+}
+
+Joiner <|.down. CityJoiner
+Joiner <|.down. RainJoiner
+Joiner <|.down. YearJoiner
+
+RabbitMQ <-up- CityJoiner
+RabbitMQ <-up- RainJoiner
+RabbitMQ <-up- YearJoiner
+
+
+
+
+@enduml
