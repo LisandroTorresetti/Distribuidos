@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"regexp"
 	"strings"
 	"time"
 	"tp1/communication"
@@ -23,13 +24,14 @@ const (
 )
 
 type eofConfig struct {
-	EOFType       string                    `yaml:"eof_type"`
-	Counters      map[string]map[string]int `yaml:"counters"`
-	Queues        []string                  `yaml:"queues"`
-	Exchanges     []string                  `yaml:"exchanges"`
-	Responses     map[string][]string       `yaml:"responses"`
-	SpecialCases  []string                  `yaml:"special_cases"`
-	QueryHandlers []string                  `yaml:"query_handlers"`
+	EOFType       string                               `yaml:"eof_type"`
+	Counters      map[string]map[string]int            `yaml:"counters"`
+	Queues        []string                             `yaml:"queues"`
+	Exchanges     []string                             `yaml:"exchanges"`
+	Responses     map[string][]string                  `yaml:"responses"`
+	SpecialCases  []string                             `yaml:"special_cases"`
+	QueryHandlers []string                             `yaml:"query_handlers"`
+	InputQueue    communication.QueueDeclarationConfig `yaml:"input_queue"`
 }
 
 type EOFManager struct {
@@ -45,15 +47,7 @@ func NewEOFManager(config *eofConfig, rabbitMQ *communication.RabbitMQ) *EOFMana
 }
 
 func (eof *EOFManager) DeclareQueues() error {
-	queueDeclarationConfig := communication.QueueDeclarationConfig{
-		Name:             eofQueue,
-		Durable:          true,
-		DeleteWhenUnused: false,
-		Exclusive:        true,
-		NoWait:           false,
-	}
-
-	err := eof.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{queueDeclarationConfig})
+	err := eof.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{eof.config.InputQueue})
 	if err != nil {
 		return err
 	}
@@ -190,8 +184,10 @@ func (eof *EOFManager) handlePublishInQueue(ctx context.Context, eofMetadata ent
 
 	eofMessage := eofMetadata.GetMessage()
 	if utils.ContainsString(eofMetadata.GetStage(), eof.config.SpecialCases) {
-		eofMessage = fmt.Sprintf("eof.%s.%s", eofMetadata.GetStage(), wildcardCity)
-	} else if utils.ContainsString(eofMetadata.GetStage(), eof.config.SpecialCases) {
+		regex := regexp.MustCompile(`(eof\.[^.]+).*`) // replace the original city by the wildcard
+		match := regex.FindStringSubmatch(eofMetadata.GetMessage())
+		eofMessage = fmt.Sprintf("%s.%s", match[1], wildcardCity)
+	} else if utils.ContainsString(eofMetadata.GetStage(), eof.config.QueryHandlers) {
 		eofMessage = pong
 	}
 
@@ -205,9 +201,11 @@ func (eof *EOFManager) handlePublishInQueue(ctx context.Context, eofMetadata ent
 	formatName := !utils.ContainsString(eofMetadata.GetStage(), eof.config.SpecialCases) &&
 		!utils.ContainsString(eofMetadata.GetStage(), eof.config.QueryHandlers)
 	if formatName {
+		log.Debugf("LICHITA VOY A FORMATEAR QUEUE, %s", targetQueueName)
 		// we have to parse it
 		targetQueueName = fmt.Sprintf(targetQueueName, eofMetadata.GetCity())
 	}
+	log.Debugf("LICHITA TARGET QUEUE: %s", targetQueueName)
 
 	err = eof.rabbitMQ.PublishMessageInQueue(ctx, targetQueueName, eofToSendBytes, contentTypeJson)
 	if err != nil {
