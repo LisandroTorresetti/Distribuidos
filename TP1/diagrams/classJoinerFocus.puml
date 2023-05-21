@@ -1,27 +1,94 @@
 @startuml
 'https://plantuml.com/class-diagram
 
-abstract class AbstractList
-abstract AbstractCollection
-interface List
-interface Collection
 
-List <|-- AbstractList
-Collection <|-- AbstractCollection
 
-Collection <|- List
-AbstractCollection <|- AbstractList
-AbstractList <|-- ArrayList
-
-class ArrayList {
-Object[] elementData
-size()
+class RainJoiner {
+    config RainJoinerConfig
 }
 
-enum TimeUnit {
-DAYS
-HOURS
-MINUTES
+class YearJoiner {
+    config YearJoinerConfig
 }
+
+class CityJoiner {
+    config CityJoinerConfig
+}
+
+class Metadata {
+    + City string
+	+ Type string
+	+ Stage string
+	+ Message string
+
+	+ GetType()
+	+ GetCity()
+	+ GetStage()
+	+ GetMessage()
+}
+
+class RainfallAccumulator {
+    + Counter int
+    + TotalDuration float64
+
+    + UpdateAccumulator(newDuration)
+    + SetDuration(duration)
+    + SetCounter(counter)
+    + GetAverageDuration() float64
+    + Merge(otherRainfallAccumulator)
+    + GetMetadata()
+}
+
+class DistanceAccumulator {
+    + StationName string
+    + StationID string
+    + Counter int
+    + TotalDistance float64
+
+    + UpdateAccumulator(newDistance)
+    + GetAverageDistance() float64
+    + Merge(otherDistanceAccumulator)
+    + GetMetadata()
+}
+
+
+class TripCounter {
+    + StationName string
+    + StationID int
+    + YearID int
+    + Counter int
+
+    + GetMetadata()
+    + UpdateCounter()
+    + GetCounter()
+    + GetKey()
+    + Merge(otherTripCounter)
+    + DuplicateValues(otherTripCounter) bool
+}
+
+class TripCounterCompound {
+    + StationName string
+    + StationID int
+    + FirstCounter int
+    + SecondCounter int
+
+    + GetMetadata()
+    + Merge(otherTripCounterCompound)
+    + DuplicateValues()
+}
+
+DistanceAccumulator <|.up. CityJoiner
+RainfallAccumulator <|.up. RainJoiner
+TripCounter <|.up. YearJoiner
+TripCounterCompound <|.up. YearJoiner
+
+Metadata <-up- DistanceAccumulator
+Metadata <|-up- RainfallAccumulator
+Metadata <|-up- TripCounter
+Metadata <|-up- TripCounterCompound
+
+
+
+
 
 @enduml

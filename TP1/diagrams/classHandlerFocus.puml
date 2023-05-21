@@ -1,27 +1,68 @@
 @startuml
 'https://plantuml.com/class-diagram
 
-abstract class AbstractList
-abstract AbstractCollection
-interface List
-interface Collection
+class Metadata {
+    + City string
+	+ Type string
+	+ Stage string
+	+ Message string
 
-List <|-- AbstractList
-Collection <|-- AbstractCollection
-
-Collection <|- List
-AbstractCollection <|- AbstractList
-AbstractList <|-- ArrayList
-
-class ArrayList {
-Object[] elementData
-size()
+	+ GetType()
+	+ GetCity()
+	+ GetStage()
+	+ GetMessage()
 }
 
-enum TimeUnit {
-DAYS
-HOURS
-MINUTES
+class StationData {
+	+ Code int
+	+ Name string
+	+ Latitude string
+	+ Longitude string
+	+ YearID int
+
+	GetMetadata()
+	GetPrimaryKey()
+	HasValidCoordinates()
+	GetCoordinates()
 }
+
+class WeatherData {
+	+ Date Time
+	+ Rainfall float64
+
+	GetMetadata()
+}
+
+class TripData {
+	+ Code int
+	+ StartDate Time
+	+ StartStationCode int
+	+ EndDate Time
+	+ EndStationCode int
+	+ Duration float64
+	+ YearID int
+
+	GetMetadata()
+}
+
+class WeatherWorker {
+    config WeatherConfig
+}
+
+class TripWorker {
+    config TripWorker
+}
+
+class StationWorker {
+    config TripWorker
+}
+
+Metadata <-up- StationData
+Metadata <-up- WeatherData
+Metadata <-up- TripData
+
+StationData <.up. StationWorker
+WeatherData <.up. WeatherWorker
+TripData <.up. TripWorker
 
 @enduml
