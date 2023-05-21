@@ -21,14 +21,6 @@ func (ra *RainfallAccumulator) UpdateAccumulator(duration float64) {
 	ra.TotalDuration += duration
 }
 
-func (ra *RainfallAccumulator) SetDuration(duration float64) {
-	ra.TotalDuration = duration
-}
-
-func (ra *RainfallAccumulator) SetCounter(counter int) {
-	ra.Counter = counter
-}
-
 func (ra *RainfallAccumulator) GetAverageDuration() float64 {
 	if ra.Counter == 0 {
 		panic("[RainfallAccumulator] cannot get average duration, counter is zero")

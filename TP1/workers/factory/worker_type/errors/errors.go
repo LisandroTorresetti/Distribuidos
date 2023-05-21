@@ -6,8 +6,6 @@ var (
 	ErrInvalidStationData  = errors.New("invalid station data")
 	ErrInvalidTripData     = errors.New("invalid trip data")
 	ErrInvalidWeatherData  = errors.New("invalid weather data")
-	ErrInvalidLatitude     = errors.New("invalid latitude")
-	ErrInvalidLongitude    = errors.New("invalid longitude")
 	ErrStationCodeType     = errors.New("invalid station code type")
 	ErrInvalidYearIDType   = errors.New("invalid year ID type")
 	ErrInvalidDate         = errors.New("invalid date")

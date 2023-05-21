@@ -80,9 +80,9 @@ func main() {
 		}(data)
 	}
 
-	log.Debug("[client] Waiting for threads")
+	log.Info("[client] Waiting for threads")
 	wg.Wait()
-	log.Debug("[client] Finish main.go")
+	log.Info("[client] Finish main.go")
 }
 
 func sendData(client *Client, data string) error {

@@ -99,7 +99,7 @@ func (mh *MessageHandler) handleDataMessage(ctx context.Context, message string)
 	}
 
 	targetExchange := getTargetExchange(dataType)
-	randomID := getRandomID()
+	randomID := utils.GetRandomID()
 	routingKey := fmt.Sprintf("%s.%s.%v", dataType, city, randomID) // routingKey could be weather.city.id, trips.city.id or stations.city.id
 	err = mh.rabbitMQ.PublishMessageInExchange(ctx, targetExchange, routingKey, []byte(message), "text/plain")
 	if err != nil {

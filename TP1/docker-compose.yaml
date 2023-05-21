@@ -16,10 +16,43 @@ services:
         condition: service_started
       tw_montreal_1:
         condition: service_started
-      ww_montreal_1:
+      tw_montreal_2:
         condition: service_started
-      year_joiner_montreal_1:
+      tw_montreal_3:
         condition: service_started
+      sw_montreal_1:
+        condition: service_started
+      sw_montreal_2:
+        condition: service_started
+      sw_montreal_3:
+        condition: service_started
+
+      tw_toronto_1:
+        condition: service_started
+      tw_toronto_2:
+        condition: service_started
+      tw_toronto_3:
+        condition: service_started
+      sw_toronto_1:
+        condition: service_started
+      sw_toronto_2:
+        condition: service_started
+      sw_toronto_3:
+        condition: service_started
+
+      tw_washington_1:
+        condition: service_started
+      tw_washington_2:
+        condition: service_started
+      tw_washington_3:
+        condition: service_started
+      sw_washington_1:
+        condition: service_started
+      sw_washington_2:
+        condition: service_started
+      sw_washington_3:
+        condition: service_started
+
 
   client:
     container_name: client
@@ -31,10 +64,10 @@ services:
     networks:
       - bikers
     depends_on:
-      eof_manager:
-        condition: service_started
       server:
         condition: service_started
+    volumes:
+      - ./datasets/:/client/datasets/
 
   eof_manager:
     container_name: eof_manager
@@ -49,22 +82,8 @@ services:
       rabbit:
         condition: service_healthy
 
-  ww_montreal_1:
-    container_name: ww_montreal_1
-    image: workers:latest
-    entrypoint: ./main
-    environment:
-      - WORKER_ID=1
-      - CITY=montreal
-      - WORKER_TYPE=weather-worker
-      - LOG_LEVEL=DEBUG
-      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
-    networks:
-      - bikers
-    depends_on:
-      - eof_manager
-      - rabbit
-      - year_joiner_montreal_1
+
+  ### TRIP WORKERS
 
   tw_montreal_1:
     container_name: tw_montreal_1
@@ -82,6 +101,174 @@ services:
       - eof_manager
       - rabbit
       - year_joiner_montreal_1
+      - year_joiner_montreal_2
+      - year_joiner_montreal_3
+      - year_joiner_montreal_4
+
+  tw_montreal_2:
+    container_name: tw_montreal_2
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=2
+      - CITY=montreal
+      - WORKER_TYPE=trips-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_montreal_1
+      - year_joiner_montreal_2
+      - year_joiner_montreal_3
+      - year_joiner_montreal_4
+
+  tw_montreal_3:
+    container_name: tw_montreal_3
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=3
+      - CITY=montreal
+      - WORKER_TYPE=trips-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_montreal_1
+      - year_joiner_montreal_2
+      - year_joiner_montreal_3
+      - year_joiner_montreal_4
+
+
+  tw_toronto_1:
+    container_name: tw_toronto_1
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=1
+      - CITY=toronto
+      - WORKER_TYPE=trips-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_toronto_1
+      - year_joiner_toronto_2
+      - year_joiner_toronto_3
+      - year_joiner_toronto_4
+
+  tw_toronto_2:
+    container_name: tw_toronto_2
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=2
+      - CITY=toronto
+      - WORKER_TYPE=trips-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_toronto_1
+      - year_joiner_toronto_2
+      - year_joiner_toronto_3
+      - year_joiner_toronto_4
+
+  tw_toronto_3:
+    container_name: tw_toronto_3
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=3
+      - CITY=toronto
+      - WORKER_TYPE=trips-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_toronto_1
+      - year_joiner_toronto_2
+      - year_joiner_toronto_3
+      - year_joiner_toronto_4
+
+
+  tw_washington_1:
+    container_name: tw_washington_1
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=1
+      - CITY=washington
+      - WORKER_TYPE=trips-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_washington_1
+      - year_joiner_washington_2
+      - year_joiner_washington_3
+      - year_joiner_washington_4
+
+  tw_washington_2:
+    container_name: tw_washington_2
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=2
+      - CITY=washington
+      - WORKER_TYPE=trips-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_washington_1
+      - year_joiner_washington_2
+      - year_joiner_washington_3
+      - year_joiner_washington_4
+
+  tw_washington_3:
+    container_name: tw_washington_3
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=3
+      - CITY=washington
+      - WORKER_TYPE=trips-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_washington_1
+      - year_joiner_washington_2
+      - year_joiner_washington_3
+      - year_joiner_washington_4
+
+
+  ### STATION WORKERS
 
   sw_montreal_1:
     container_name: sw_montreal_1
@@ -99,6 +286,177 @@ services:
       - eof_manager
       - rabbit
       - year_joiner_montreal_1
+      - year_joiner_montreal_2
+      - year_joiner_montreal_3
+      - year_joiner_montreal_4
+
+  sw_montreal_2:
+    container_name: sw_montreal_2
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=2
+      - CITY=montreal
+      - WORKER_TYPE=stations-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_montreal_1
+      - year_joiner_montreal_2
+      - year_joiner_montreal_3
+      - year_joiner_montreal_4
+
+  sw_montreal_3:
+    container_name: sw_montreal_3
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=3
+      - CITY=montreal
+      - WORKER_TYPE=stations-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_montreal_1
+      - year_joiner_montreal_2
+      - year_joiner_montreal_3
+      - year_joiner_montreal_4
+
+
+  sw_toronto_1:
+    container_name: sw_toronto_1
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=1
+      - CITY=toronto
+      - WORKER_TYPE=stations-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_toronto_1
+      - year_joiner_toronto_2
+      - year_joiner_toronto_3
+      - year_joiner_toronto_4
+
+  sw_toronto_2:
+    container_name: sw_toronto_2
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=2
+      - CITY=toronto
+      - WORKER_TYPE=stations-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_toronto_1
+      - year_joiner_toronto_2
+      - year_joiner_toronto_3
+      - year_joiner_toronto_4
+
+  sw_toronto_3:
+    container_name: sw_toronto_3
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=3
+      - CITY=toronto
+      - WORKER_TYPE=stations-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_toronto_1
+      - year_joiner_toronto_2
+      - year_joiner_toronto_3
+      - year_joiner_toronto_4
+
+
+  sw_washington_1:
+    container_name: sw_washington_1
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=1
+      - CITY=washington
+      - WORKER_TYPE=stations-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_washington_1
+      - year_joiner_washington_2
+      - year_joiner_washington_3
+      - year_joiner_washington_4
+
+
+  sw_washington_2:
+    container_name: sw_washington_2
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=2
+      - CITY=washington
+      - WORKER_TYPE=stations-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_washington_1
+      - year_joiner_washington_2
+      - year_joiner_washington_3
+      - year_joiner_washington_4
+
+  sw_washington_3:
+    container_name: sw_washington_3
+    image: workers:latest
+    entrypoint: ./main
+    environment:
+      - WORKER_ID=3
+      - CITY=washington
+      - WORKER_TYPE=stations-worker
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - year_joiner_washington_1
+      - year_joiner_washington_2
+      - year_joiner_washington_3
+      - year_joiner_washington_4
+
+
+  ### JOINERS
+
+  #### YEAR JOINER
 
   year_joiner_montreal_1:
     container_name: year_joiner_montreal_1
@@ -108,6 +466,245 @@ services:
       - JOINER_ID=Q1
       - CITY=montreal
       - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_montreal # 1 por ciudad
+
+  year_joiner_montreal_2:
+    container_name: year_joiner_montreal_2
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q2
+      - CITY=montreal
+      - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_montreal # 1 por ciudad
+
+  year_joiner_montreal_3:
+    container_name: year_joiner_montreal_3
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q3
+      - CITY=montreal
+      - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_montreal # 1 por ciudad
+
+  year_joiner_montreal_4:
+    container_name: year_joiner_montreal_4
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q4
+      - CITY=montreal
+      - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_montreal # 1 por ciudad
+
+
+  year_joiner_toronto_1:
+    container_name: year_joiner_toronto_1
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q1
+      - CITY=toronto
+      - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_toronto # 1 por ciudad
+
+  year_joiner_toronto_2:
+    container_name: year_joiner_toronto_2
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q2
+      - CITY=toronto
+      - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_toronto # 1 por ciudad
+
+  year_joiner_toronto_3:
+    container_name: year_joiner_toronto_3
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q3
+      - CITY=toronto
+      - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_toronto # 1 por ciudad
+
+  year_joiner_toronto_4:
+    container_name: year_joiner_toronto_4
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q4
+      - CITY=toronto
+      - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_toronto # 1 por ciudad
+
+
+  year_joiner_washington_1:
+    container_name: year_joiner_washington_1
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q1
+      - CITY=washington
+      - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_washington # 1 por ciudad
+
+  year_joiner_washington_2:
+    container_name: year_joiner_washington_2
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q2
+      - CITY=washington
+      - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_washington # 1 por ciudad
+
+  year_joiner_washington_3:
+    container_name: year_joiner_washington_3
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q3
+      - CITY=washington
+      - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_washington # 1 por ciudad
+
+  year_joiner_washington_4:
+    container_name: year_joiner_washington_4
+    image: joiners:latest
+    entrypoint: ./main
+    environment:
+      - JOINER_ID=Q4
+      - CITY=washington
+      - JOINER_TYPE=year-joiner
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+      - duplicates_handler_washington # 1 por ciudad
+
+  ### HANDLERS
+
+  #### DUPLICATES HANDLER
+
+  duplicates_handler_montreal:
+    container_name: duplicates_handler_montreal
+    image: queryhandlers:latest
+    entrypoint: ./main
+    environment:
+      - CITY=montreal
+      - HANDLER_TYPE=duplicates-handler
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+
+  duplicates_handler_toronto:
+    container_name: duplicates_handler_toronto
+    image: queryhandlers:latest
+    entrypoint: ./main
+    environment:
+      - CITY=toronto
+      - HANDLER_TYPE=duplicates-handler
+      - LOG_LEVEL=DEBUG
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+    networks:
+      - bikers
+    depends_on:
+      - eof_manager
+      - rabbit
+
+  duplicates_handler_washington:
+    container_name: duplicates_handler_washington
+    image: queryhandlers:latest
+    entrypoint: ./main
+    environment:
+      - CITY=washington
+      - HANDLER_TYPE=duplicates-handler
       - LOG_LEVEL=DEBUG
       - RABBIT_URL=amqp://guest:guest@rabbit:5672/
     networks:
