@@ -26,12 +26,12 @@ eof_queue_config: # queue of the eof manager
   name: "eof-queue"
   durable: true
   delete_when_unused: false
-  exclusive: true
+  exclusive: false
   no_wait: false
 
 output_rain_handler_queue: # messages from Rain Joiner to Rain Handler
   name: "rainjoiner-rainhandler-queue"
   durable: true
   delete_when_unused: false
-  exclusive: true
+  exclusive: false
   no_wait: false

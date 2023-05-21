@@ -4,32 +4,32 @@ special_cases: ["rain-joiner"]
 
 counters:
   weather-worker:
-    montreal: 1
-    washington: 1
-    toronto: 1
+    montreal: 3
+    washington: 3
+    toronto: 3
 
   trips-worker:
-    montreal: 1
-    washington: 1
-    toronto: 1
+    montreal: 3
+    washington: 3
+    toronto: 3
 
   stations-worker:
-    montreal: 1
-    washington: 1
-    toronto: 1
+    montreal: 3
+    washington: 3
+    toronto: 3
 
   rain-joiner: #special case
-    montreal: 1
-    washington: 1
-    toronto: 1
+    montreal: 4
+    washington: 4
+    toronto: 4
 
   year-joiner:
-    montreal: 1
-    washington: 1
-    toronto: 1
+    montreal: 4
+    washington: 4
+    toronto: 4
 
   city-joiner:
-    montreal: 1
+    montreal: 4
 
   rain-handler:
     nn: 1
@@ -49,18 +49,18 @@ responses:
 
   rain-joiner: ["rainjoiner-rainhandler-queue"]
   city-joiner: ["cityjoiner-cityhandler-%s-queue"]
-  year-joiner: ["cityjoiner-duplicateshandler-%s-queue"]
+  year-joiner: ["yearjoiner-duplicateshandler-%s-queue"]
 
   rain-handler: ["response-queue"]
   city-handler: ["response-queue"]
   duplicates-handler: ["response-queue"]
 
 
-eof_queue_config:
+input_queue:
   name: "eof-queue"
   durable: true
   delete_when_unused: false
-  exclusive: true
+  exclusive: false
   no_wait: false
 
 exchanges:

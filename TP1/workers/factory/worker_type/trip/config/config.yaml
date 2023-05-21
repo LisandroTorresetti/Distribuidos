@@ -52,5 +52,5 @@ eof_queue_config: # queue of the eof manager
   name: "eof-queue"
   durable: true
   delete_when_unused: false
-  exclusive: true
+  exclusive: false
   no_wait: false

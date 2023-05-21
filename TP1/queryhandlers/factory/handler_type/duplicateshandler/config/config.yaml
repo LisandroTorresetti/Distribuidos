@@ -6,19 +6,19 @@ eof_queue_config: # queue of the eof manager
   name: "eof-queue"
   durable: true
   delete_when_unused: false
-  exclusive: true
+  exclusive: false
   no_wait: false
 
 input_queue: # messages from Year Joiner to Duplicates Handler
   name: "yearjoiner-duplicateshandler-%s-queue"
   durable: true
   delete_when_unused: false
-  exclusive: true
+  exclusive: false
   no_wait: false
 
 output_response_queue: # messages from Duplicates Handler to Server
   name: "response-queue"
   durable: true
   delete_when_unused: false
-  exclusive: true
+  exclusive: false
   no_wait: false
