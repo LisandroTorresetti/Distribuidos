@@ -19,13 +19,9 @@ import (
 )
 
 const (
-	latitudeBound     = 90
-	longitudeBound    = 180
 	stationWorkerType = "stations-worker"
 	stationStr        = "stations"
-	exchangeInput     = "exchange_input_"
 	exchangeOutput    = "exchange_output_"
-	outputTarget      = "output"
 	contentTypeJson   = "application/json"
 )
 
@@ -199,20 +195,8 @@ func (sw *StationWorker) getStationData(data string) (*station.StationData, erro
 		return nil, fmt.Errorf("%s: %w", dataErrors.ErrStationCodeType, dataErrors.ErrInvalidStationData)
 	}
 
-	latitude := dataSplit[sw.config.ValidColumnsIndexes.Latitude]
+	latitude := dataSplit[sw.config.ValidColumnsIndexes.Latitude] // for query 2 we don't care about these values, so we cannot filter them. We add a fake value to avoid errors
 	longitude := dataSplit[sw.config.ValidColumnsIndexes.Longitude]
-
-	/*latitude, err := strconv.ParseFloat(dataSplit[sw.config.ValidColumnsIndexes.Latitude], 64)
-	if err != nil {
-		log.Debugf("Invalid latitude: %v", dataSplit[sw.config.ValidColumnsIndexes.Latitude])
-		return nil, fmt.Errorf("%s: %w", dataErrors.ErrInvalidLatitude, dataErrors.ErrInvalidStationData)
-	}
-
-	longitude, err := strconv.ParseFloat(dataSplit[sw.config.ValidColumnsIndexes.Longitude], 64)
-	if err != nil {
-		log.Debugf("Invalid longitude: %v", dataSplit[sw.config.ValidColumnsIndexes.Longitude])
-		return nil, fmt.Errorf("%s: %w", dataErrors.ErrInvalidLongitude, dataErrors.ErrInvalidStationData)
-	}*/
 
 	yearID, err := strconv.Atoi(dataSplit[sw.config.ValidColumnsIndexes.YearID])
 	if err != nil {
@@ -237,19 +221,6 @@ func (sw *StationWorker) getStationData(data string) (*station.StationData, erro
 func (sw *StationWorker) isValid(stationData *station.StationData) bool {
 	validData := true
 	var invalidReasons []string
-
-	/*latitude := stationData.Latitude
-	longitude := stationData.Longitude
-
-	if !(-latitudeBound <= latitude && latitude <= latitudeBound) {
-		validData = false
-		invalidReasons = append(invalidReasons, "latitude out of bound")
-	}
-
-	if !(-longitudeBound <= longitude && longitude <= longitudeBound) {
-		validData = false
-		invalidReasons = append(invalidReasons, "longitude out of bound")
-	}*/
 
 	if stationData.Code < 0 {
 		invalidReasons = append(invalidReasons, "Station code < 0")

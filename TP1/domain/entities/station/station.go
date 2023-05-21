@@ -38,6 +38,10 @@ func (sd StationData) GetPrimaryKey() string {
 
 // HasValidCoordinates returns if both Latitude and Longitude are valid
 func (sd StationData) HasValidCoordinates() bool {
+	if sd.Latitude == "" || sd.Longitude == "" {
+		return false
+	}
+
 	latitude, longitude := sd.GetCoordinates()
 
 	if !(-latitudeBound <= latitude && latitude <= latitudeBound) {
