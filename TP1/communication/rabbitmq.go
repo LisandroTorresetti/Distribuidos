@@ -165,51 +165,6 @@ func (r *RabbitMQ) GetConsumerForExchange(exchangeName string) (<-chan amqp.Deli
 	return consumer, nil
 }
 
-// GetExchangeConsumer returns a consumer for a given exchange. The consumer is bound to the given routing keys
-func (r *RabbitMQ) GetExchangeConsumer(exchange string, routingKeys []string) (<-chan amqp.Delivery, error) {
-	anonymousQueue, err := r.channel.QueueDeclare(
-		"",
-		true,
-		false,
-		true,
-		false,
-		nil,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("error declaring anonymous queue: %w", err)
-	}
-
-	for _, routingKey := range routingKeys {
-		err = r.channel.QueueBind(
-			anonymousQueue.Name,
-			routingKey,
-			exchange,
-			false,
-			nil,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error binding routing key %s: %w", routingKey, err)
-		}
-	}
-
-	consumer, err := r.channel.Consume(
-		anonymousQueue.Name,
-		"",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("error getting consumer for exchange %s: %w", exchange, err)
-	}
-
-	return consumer, nil
-}
-
 // GetQueueConsumer returns a consumer for a given queue
 func (r *RabbitMQ) GetQueueConsumer(queueName string) (<-chan amqp.Delivery, error) {
 	consumer, err := r.channel.Consume(
@@ -231,14 +186,14 @@ func (r *RabbitMQ) GetQueueConsumer(queueName string) (<-chan amqp.Delivery, err
 
 // KillBadBunny close RabbitMQ's connection and channel
 func (r *RabbitMQ) KillBadBunny() error {
-	err := r.connection.Close()
-	if err != nil {
-		return fmt.Errorf("error closing RabbitMQ connection: %w", err)
-	}
-
-	err = r.channel.Close()
+	err := r.channel.Close()
 	if err != nil {
 		return fmt.Errorf("error closing RabbitMQ channel: %w", err)
+	}
+
+	err = r.connection.Close()
+	if err != nil {
+		return fmt.Errorf("error closing RabbitMQ connection: %w", err)
 	}
 
 	return nil
