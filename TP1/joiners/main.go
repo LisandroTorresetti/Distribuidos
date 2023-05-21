@@ -52,7 +52,10 @@ func main() {
 		err := joiner.Kill()
 		if err != nil {
 			log.Error(getLogMessage(joiner, "error killing joiner", err))
+			return
 		}
+
+		log.Info(getLogMessage(joiner, "joiner killed successfully", nil))
 	}(joiner)
 
 	err = joiner.DeclareQueues()
@@ -92,8 +95,6 @@ func main() {
 		log.Debug(getLogMessage(joiner, "error sending EOF", err))
 		return
 	}
-
-	log.Debug(getLogMessage(joiner, "Finish main.go", nil))
 }
 
 func getLogMessage(joiner factory.Joiner, message string, err error) string {

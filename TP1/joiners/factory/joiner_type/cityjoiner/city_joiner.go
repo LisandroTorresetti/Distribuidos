@@ -92,7 +92,7 @@ func (cj *CityJoiner) GetExpectedEOFString(dataType string) string {
 // Queues: EOF queue, City Handler queue
 func (cj *CityJoiner) DeclareQueues() error {
 	err := cj.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{
-		//cj.config.EOFQueueConfig,
+		cj.config.EOFQueueConfig,
 		cj.config.CityHandlerQueue,
 	})
 

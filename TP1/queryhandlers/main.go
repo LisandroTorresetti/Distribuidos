@@ -52,7 +52,10 @@ func main() {
 		err := queryHandler.Kill()
 		if err != nil {
 			log.Error(getLogMessage(queryHandler, "error killing handler", err))
+			return
 		}
+
+		log.Info(getLogMessage(queryHandler, "Query handler killed successfully!", nil))
 	}(queryHandler)
 
 	err = queryHandler.DeclareQueues()

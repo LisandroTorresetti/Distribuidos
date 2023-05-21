@@ -90,7 +90,7 @@ func (rj *RainJoiner) GetExpectedEOFString(data string) string {
 // Queues: EOF queue, Rain Handler queue
 func (rj *RainJoiner) DeclareQueues() error {
 	err := rj.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{
-		//rj.config.EOFQueueConfig,
+		rj.config.EOFQueueConfig,
 		rj.config.RainHandlerQueue,
 	})
 	if err != nil {
@@ -156,20 +156,9 @@ func (rj *RainJoiner) JoinData() error {
 // SendResult summarizes the joined data and sends it to the Rain Handler
 func (rj *RainJoiner) SendResult() error {
 	rainfallSummary := rainfallaccumulator.NewRainfallAccumulator()
-	totalCount := 0
-	var totalDuration float64
 
 	for _, rainfallAccumulator := range rj.joinResult {
-		totalCount += rainfallAccumulator.Counter
-		totalDuration += rainfallAccumulator.TotalDuration // we want the average considering ALL trips in the given city
-	}
-
-	rainfallSummary.SetCounter(totalCount)
-	rainfallSummary.SetDuration(totalDuration)
-	rainfallSummaryBytes, err := json.Marshal(rainfallSummary)
-	if err != nil {
-		log.Error(rj.getLogMessage("SendResult", "error marshalling data", ErrMarshallingSummary))
-		return err
+		rainfallSummary.Merge(rainfallAccumulator) // we want the average considering ALL trips in the given city
 	}
 
 	metadata := entities.NewMetadata(
@@ -179,6 +168,12 @@ func (rj *RainJoiner) SendResult() error {
 		"",
 	)
 	rainfallSummary.Metadata = metadata
+
+	rainfallSummaryBytes, err := json.Marshal([]*rainfallaccumulator.RainfallAccumulator{rainfallSummary})
+	if err != nil {
+		log.Error(rj.getLogMessage("SendResult", "error marshalling data", ErrMarshallingSummary))
+		return err
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

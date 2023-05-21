@@ -97,9 +97,7 @@ func (yj *YearJoiner) GetExpectedEOFString(dataType string) string {
 // Queues: EOF queue, Year Grouper 2016 and Year Grouper 2017 queue
 func (yj *YearJoiner) DeclareQueues() error {
 	err := yj.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{
-		//cj.config.EOFQueueConfig,
-		//yj.config.YearGrouper2016Queue,
-		//yj.config.YearGrouper2017Queue,
+		yj.config.EOFQueueConfig,
 		yj.config.DuplicatesHandlerQueue,
 	})
 
@@ -161,63 +159,6 @@ func (yj *YearJoiner) JoinData() error {
 	log.Debug(yj.getLogMessage("JoinData", "All data was joined successfully", nil))
 	return nil
 }
-
-// SendResult summarizes the data from 2016 and 2017 and sends it to the corresponding queues
-/*func (yj *YearJoiner) SendResult() error {
-	var data2016 []*tripcounter.TripCounter
-	var data2017 []*tripcounter.TripCounter
-
-	metadata2016 := entities.NewMetadata(
-		yj.GetCity(),
-		tripCounterStr,
-		yearJoinerType,
-		"",
-	)
-
-	metadata2017 := entities.NewMetadata(
-		yj.GetCity(),
-		tripCounterStr,
-		yearJoinerType,
-		"",
-	)
-
-	for _, tripCounterMap := range yj.joinResult {
-		counter2016 := tripCounterMap[year2016]
-		counter2016.Metadata = metadata2016
-		data2016 = append(data2016, counter2016)
-
-		counter2017 := tripCounterMap[year2017]
-		counter2017.Metadata = metadata2017
-		data2017 = append(data2016, counter2017)
-	}
-
-	data2016Bytes, err := json.Marshal(data2016)
-	if err != nil {
-		log.Error(yj.getLogMessage("SendResult", "error marshalling data2016 to send", err))
-	}
-
-	data2017Bytes, err := json.Marshal(data2017)
-	if err != nil {
-		log.Error(yj.getLogMessage("SendResult", "error marshalling data2017 to send", err))
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	err = yj.rabbitMQ.PublishMessageInQueue(ctx, yj.config.YearGrouper2016Queue.Name, data2016Bytes, contentTypeJson)
-	if err != nil {
-		log.Error(yj.getLogMessage("SendResult", "error sending data2016", err))
-		return err
-	}
-
-	err = yj.rabbitMQ.PublishMessageInQueue(ctx, yj.config.YearGrouper2017Queue.Name, data2017Bytes, contentTypeJson)
-	if err != nil {
-		log.Error(yj.getLogMessage("SendResult", "error sending data2017", err))
-		return err
-	}
-
-	return nil
-}*/
 
 // SendResult summarizes the data from 2016 and 2017 and sends it to the corresponding queue
 func (yj *YearJoiner) SendResult() error {
@@ -340,6 +281,7 @@ outerStationsLoop:
 			mapKey := stationData.GetPrimaryKey()
 			_, ok := yj.stationsMap[mapKey]
 			if !ok {
+				log.Debug(yj.getLogMessage("saveStationsData", fmt.Sprintf("LICHITA ME LLEGO ESTO: primary key: %s - station name: %s", mapKey, stationData.Name), nil))
 				yj.stationsMap[mapKey] = stationData
 			}
 		}

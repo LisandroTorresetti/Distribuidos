@@ -63,7 +63,7 @@ func (ch *CityHandler) GetExpectedEOFString() string {
 // Queues: EOF queue, City Handler queue, Response queue
 func (ch *CityHandler) DeclareQueues() error {
 	err := ch.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{
-		//rh.config.EOFQueueConfig,
+		ch.config.EOFQueueConfig,
 		ch.config.OutputQueue,
 		ch.config.InputQueue,
 	})

@@ -84,14 +84,14 @@ func (s *Server) Run() error {
 	}(s.serverSocket)
 
 	for {
-		log.Debug("[server] waiting for new connections")
+		log.Info("[server] waiting for new connections")
 		// Accept new connection
 		conn, err := s.serverSocket.AcceptNewConnections()
 		if err != nil {
 			log.Errorf("[server] error accepting a new connection: %s", err.Error())
 			return err
 		}
-		log.Debug("[server] connection accepted!")
+		log.Info("[server] connection accepted!")
 
 		go func(conn net.Conn) {
 			newSocket := socket.NewSocket(s.getSocketConfig())
@@ -119,7 +119,7 @@ func (s *Server) Run() error {
 				return
 			}
 
-			log.Debug("[server] Data was processed correctly!")
+			log.Info("[server] Data was processed correctly!")
 		}(conn)
 	}
 }

@@ -51,14 +51,17 @@ func main() {
 		err := worker.Kill()
 		if err != nil {
 			log.Errorf("[worker: %s][workerID: %v] error killing worker: %s", worker.GetType(), worker.GetID(), err.Error())
+			return
 		}
+
+		log.Debugf("[worker: %s][workerID: %v] worker killed successfully", worker.GetType(), worker.GetID())
 	}(worker)
 
-	/*err = worker.DeclareQueues()
+	err = worker.DeclareQueues()
 	if err != nil {
 		log.Debugf("[worker: %s][workerID: %v] %s", worker.GetType(), worker.GetID(), err.Error())
 		return
-	}*/
+	}
 
 	err = worker.DeclareExchanges()
 	if err != nil {
@@ -71,6 +74,4 @@ func main() {
 		log.Debugf("[worker: %s][workerID: %v] error processing messages: %s", worker.GetType(), worker.GetID(), err.Error())
 		return
 	}
-
-	log.Debugf("[worker: %s][workerID: %v] finish main.go", worker.GetType(), worker.GetID())
 }

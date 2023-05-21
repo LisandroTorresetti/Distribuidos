@@ -67,7 +67,7 @@ func (rh *RainHandler) GetExpectedEOFString() string {
 // Queues: EOF queue, Rain Handler queue, Response queue
 func (rh *RainHandler) DeclareQueues() error {
 	err := rh.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{
-		//rh.config.EOFQueueConfig,
+		rh.config.EOFQueueConfig,
 		rh.config.OutputQueue,
 		rh.config.InputQueue,
 	})
@@ -94,12 +94,13 @@ func (rh *RainHandler) GenerateResponse() error {
 	expectedEOF := rh.GetExpectedEOFString()
 
 	for message := range consumer {
-		var newRainfallAccumulator *rainfallaccumulator.RainfallAccumulator
-		err = json.Unmarshal(message.Body, &newRainfallAccumulator)
+		var newRainfallAccumulators []*rainfallaccumulator.RainfallAccumulator
+		err = json.Unmarshal(message.Body, &newRainfallAccumulators)
 		if err != nil {
 			log.Error(rh.getLogMessage("GenerateResponse", "error unmarshalling data", err))
 			return err
 		}
+		newRainfallAccumulator := newRainfallAccumulators[0] // We only receive one element
 
 		metadata := newRainfallAccumulator.GetMetadata()
 

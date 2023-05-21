@@ -61,7 +61,7 @@ func (dh *DuplicatesHandler) GetExpectedEOFString() string {
 
 func (dh *DuplicatesHandler) DeclareQueues() error {
 	err := dh.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{
-		//rh.config.EOFQueueConfig,
+		dh.config.EOFQueueConfig,
 		dh.config.OutputQueue,
 		dh.config.InputQueue,
 	})
