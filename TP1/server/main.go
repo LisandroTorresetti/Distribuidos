@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"os"
 	"tp1/utils"
-
-	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 )
 
 func LoadServerConfig() (ServerConfig, error) {
@@ -59,17 +58,38 @@ func main() {
 		return
 	}
 	server := NewServer(serverConfig)
-	err = server.DeclareExchanges()
+	err = server.DeclareQueues()
 	if err != nil {
 		log.Errorf("Error declaring RabbitMQ queues: %s", err.Error())
 		return
 	}
 
-	err = server.Run()
+	err = server.DeclareExchanges()
 	if err != nil {
-		log.Error("Error running server: %s", err.Error())
+		log.Errorf("Error declaring RabbitMQ exchanges: %s", err.Error())
 		return
 	}
 
+	defer func(server *Server) {
+		err := server.Kill()
+		if err != nil {
+			log.Errorf("[server] error killing server: %s", err.Error())
+			return
+		}
+
+		log.Info("[server] server killed successfully!")
+	}(server)
+
+	signalChannel := utils.GetSignalChannel()
+
+	go func() {
+		err = server.Run()
+		if err != nil {
+			log.Error("Error running server: %s", err.Error())
+			return
+		}
+	}()
+
+	<-signalChannel
 	log.Debug("[server] Finish main.go")
 }

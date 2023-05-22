@@ -57,9 +57,9 @@ class StationWorker {
     config TripWorker
 }
 
-Metadata <.up. StationData
-Metadata <.up. WeatherData
-Metadata <.up. TripData
+Metadata <-up- StationData
+Metadata <-up- WeatherData
+Metadata <-up- TripData
 
 StationData <.up. StationWorker
 WeatherData <.up. WeatherWorker

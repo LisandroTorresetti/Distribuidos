@@ -3,6 +3,8 @@ package main
 import (
 	log "github.com/sirupsen/logrus"
 	"os"
+	"syscall"
+	"tp1/utils"
 	"tp1/workers/factory"
 )
 
@@ -47,6 +49,8 @@ func main() {
 		return
 	}
 
+	signalChannel := utils.GetSignalChannel()
+
 	defer func(worker factory.IWorker) {
 		err := worker.Kill()
 		if err != nil {
@@ -69,9 +73,16 @@ func main() {
 		return
 	}
 
-	err = worker.ProcessInputMessages()
-	if err != nil {
-		log.Debugf("[worker: %s][workerID: %v] error processing messages: %s", worker.GetType(), worker.GetID(), err.Error())
-		return
-	}
+	go func() {
+		err = worker.ProcessInputMessages()
+		if err != nil {
+			log.Debugf("[worker: %s][workerID: %v] error processing messages: %s", worker.GetType(), worker.GetID(), err.Error())
+			return
+		}
+
+		log.Debugf("[worker: %s][workerID: %v] Finish main.go", worker.GetType(), worker.GetID())
+		signalChannel <- syscall.SIGTERM
+	}()
+
+	<-signalChannel
 }

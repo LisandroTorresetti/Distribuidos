@@ -76,6 +76,7 @@ func main() {
 
 	eofManager := NewEOFManager(eofManagerConfig, rabbitMQ)
 
+	signalChannel := utils.GetSignalChannel()
 	err = eofManager.DeclareQueues()
 	if err != nil {
 		log.Errorf("[EOF Manager] error declaring queues: %s", err.Error())
@@ -88,6 +89,9 @@ func main() {
 		return
 	}
 
-	eofManager.StartManaging()
+	go func() {
+		eofManager.StartManaging()
+	}()
+	<-signalChannel
 	log.Debug("[EOF Manager] finish main.go")
 }

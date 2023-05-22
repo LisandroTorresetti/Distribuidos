@@ -4,7 +4,9 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"syscall"
 	factory "tp1/joiners/factory"
+	"tp1/utils"
 )
 
 const (
@@ -58,6 +60,8 @@ func main() {
 		log.Info(getLogMessage(joiner, "joiner killed successfully", nil))
 	}(joiner)
 
+	signalChannel := utils.GetSignalChannel()
+
 	err = joiner.DeclareQueues()
 	if err != nil {
 		log.Debug(getLogMessage(joiner, "error declaring queues", err))
@@ -76,25 +80,30 @@ func main() {
 	3. Send EOF to EOF Manager
 	*/
 
-	err = joiner.JoinData()
-	if err != nil {
-		log.Debug(getLogMessage(joiner, "error joining data", err))
-		return
-	}
-	log.Info(getLogMessage(joiner, "data joined successfully", nil))
+	go func() {
+		err = joiner.JoinData()
+		if err != nil {
+			log.Debug(getLogMessage(joiner, "error joining data", err))
+			return
+		}
+		log.Info(getLogMessage(joiner, "data joined successfully", nil))
 
-	err = joiner.SendResult()
-	if err != nil {
-		log.Debug(getLogMessage(joiner, "error sending result", err))
-		return
-	}
-	log.Info(getLogMessage(joiner, "data sent successfully", nil))
+		err = joiner.SendResult()
+		if err != nil {
+			log.Debug(getLogMessage(joiner, "error sending result", err))
+			return
+		}
+		log.Info(getLogMessage(joiner, "data sent successfully", nil))
 
-	err = joiner.SendEOF()
-	if err != nil {
-		log.Debug(getLogMessage(joiner, "error sending EOF", err))
-		return
-	}
+		err = joiner.SendEOF()
+		if err != nil {
+			log.Debug(getLogMessage(joiner, "error sending EOF", err))
+			return
+		}
+
+		signalChannel <- syscall.SIGTERM
+	}()
+	<-signalChannel
 }
 
 func getLogMessage(joiner factory.Joiner, message string, err error) string {

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"syscall"
 	"tp1/queryhandlers/factory"
+	"tp1/utils"
 )
 
 const (
@@ -58,9 +60,17 @@ func main() {
 		log.Info(getLogMessage(queryHandler, "Query handler killed successfully!", nil))
 	}(queryHandler)
 
+	signalChannel := utils.GetSignalChannel()
+
 	err = queryHandler.DeclareQueues()
 	if err != nil {
 		log.Debug(getLogMessage(queryHandler, "error declaring queues", err))
+		return
+	}
+
+	err = queryHandler.DeclareExchanges()
+	if err != nil {
+		log.Debug(getLogMessage(queryHandler, "error declaring exchanges", err))
 		return
 	}
 
@@ -70,27 +80,32 @@ func main() {
 	3. Send EOF to EOF Manager
 	*/
 
-	err = queryHandler.GenerateResponse()
-	if err != nil {
-		log.Debug(getLogMessage(queryHandler, "error generating response", err))
-		return
-	}
-	log.Info(getLogMessage(queryHandler, "response generated successfully", nil))
+	go func() {
+		err = queryHandler.GenerateResponse()
+		if err != nil {
+			log.Debug(getLogMessage(queryHandler, "error generating response", err))
+			return
+		}
+		log.Info(getLogMessage(queryHandler, "response generated successfully", nil))
 
-	err = queryHandler.SendResponse()
-	if err != nil {
-		log.Debug(getLogMessage(queryHandler, "error sending response", err))
-		return
-	}
-	log.Info(getLogMessage(queryHandler, "response sent successfully", nil))
+		err = queryHandler.SendResponse()
+		if err != nil {
+			log.Debug(getLogMessage(queryHandler, "error sending response", err))
+			return
+		}
+		log.Info(getLogMessage(queryHandler, "response sent successfully", nil))
 
-	err = queryHandler.SendEOF()
-	if err != nil {
-		log.Debug(getLogMessage(queryHandler, "error sending EOF", err))
-		return
-	}
+		err = queryHandler.SendEOF()
+		if err != nil {
+			log.Debug(getLogMessage(queryHandler, "error sending EOF", err))
+			return
+		}
 
-	log.Debug(getLogMessage(queryHandler, "Finish main.go", nil))
+		log.Debug(getLogMessage(queryHandler, "Finish main.go", nil))
+		signalChannel <- syscall.SIGTERM
+	}()
+
+	<-signalChannel
 }
 
 func getLogMessage(queryHandler factory.Handler, message string, err error) string {

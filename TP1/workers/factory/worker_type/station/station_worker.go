@@ -69,7 +69,6 @@ func (sw *StationWorker) DeclareQueues() error {
 
 	log.Infof("[worker: %s][workerID: %v][status: OK] queues declared correctly!", stationStr, sw.GetID())
 	return nil
-
 }
 
 // DeclareExchanges declares exchanges for Station Worker

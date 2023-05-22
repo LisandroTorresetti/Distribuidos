@@ -77,15 +77,15 @@ class TripCounterCompound {
     + DuplicateValues()
 }
 
-DistanceAccumulator <|.up. CityJoiner
-RainfallAccumulator <|.up. RainJoiner
-TripCounter <|.up. YearJoiner
-TripCounterCompound <|.up. YearJoiner
+DistanceAccumulator <.up. CityJoiner
+RainfallAccumulator <.up. RainJoiner
+TripCounter <.up. YearJoiner
+TripCounterCompound <.up. YearJoiner
 
 Metadata <-up- DistanceAccumulator
-Metadata <|-up- RainfallAccumulator
-Metadata <|-up- TripCounter
-Metadata <|-up- TripCounterCompound
+Metadata <-up- RainfallAccumulator
+Metadata <-up- TripCounter
+Metadata <-up- TripCounterCompound
 
 
 
