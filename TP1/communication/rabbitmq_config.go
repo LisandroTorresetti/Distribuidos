@@ -44,3 +44,9 @@ type ConsumptionConfig struct {
 	NoLocal   bool   `yaml:"no_local"`
 	NoWait    bool   `yaml:"no_wait"`
 }
+
+type QualityOfServiceConfig struct {
+	PrefetchCount int  `yaml:"prefetch_count"`
+	PrefetchSize  int  `yaml:"prefetch_size"`
+	Global        bool `yaml:"global"`
+}
