@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 	"tp1/socket"
 )
 
@@ -22,17 +24,19 @@ var (
 )
 
 type ClientConfig struct {
-	BatchSize      int      `yaml:"batch_size"`
-	FinMarker      string   `yaml:"fin_marker"`
-	FinACKMessages []string `yaml:"fin_ack_messages"`
-	ServerACK      string   `yaml:"server_ack"`
-	ServerAddress  string   `yaml:"server_address"`
-	PacketLimit    int      `yaml:"packet_limit"`
-	CSVDelimiter   string   `yaml:"csv_delimiter"`
-	DataDelimiter  string   `yaml:"data_delimiter"`
-	EndBatchMarker string   `yaml:"end_batch_marker"`
-	Protocol       string   `yaml:"protocol"`
-	TestMode       bool
+	BatchSize             int      `yaml:"batch_size"`
+	FinMarker             string   `yaml:"fin_marker"`
+	FinACKMessages        []string `yaml:"fin_ack_messages"`
+	ServerACK             string   `yaml:"server_ack"`
+	ServerAddress         string   `yaml:"server_address"`
+	ServerResponseAddress string   `yaml:"server_response_address"`
+	PacketLimit           int      `yaml:"packet_limit"`
+	CSVDelimiter          string   `yaml:"csv_delimiter"`
+	DataDelimiter         string   `yaml:"data_delimiter"`
+	EndBatchMarker        string   `yaml:"end_batch_marker"`
+	Protocol              string   `yaml:"protocol"`
+	GetResponsesMessage   string   `yaml:"get_response_message"`
+	TestMode              bool
 }
 
 type Client struct {
@@ -47,10 +51,10 @@ func NewClient(clientConfig ClientConfig) *Client {
 }
 
 // OpenConnection creates a TCP connection with the server
-func (c *Client) OpenConnection() error {
+func (c *Client) OpenConnection(serverAddress string) error {
 	clientSocket := socket.NewSocket(
 		socket.SocketConfig{
-			ServerAddress: c.config.ServerAddress,
+			ServerAddress: serverAddress,
 			ServerACK:     c.config.ServerACK,
 			PacketLimit:   c.config.PacketLimit,
 			Protocol:      c.config.Protocol,
@@ -129,6 +133,27 @@ func (c *Client) SendTripsData() error {
 		return err
 	}
 
+	return nil
+}
+
+func (c *Client) GetResponses() error {
+	var responseStr string
+	for {
+		err := c.clientSocket.Send(c.config.GetResponsesMessage)
+		if err != nil {
+			return fmt.Errorf("[GetResponses] error sending Get response message: %s", err.Error())
+		}
+
+		response, err := c.clientSocket.Listen("PONG", c.config.FinACKMessages)
+		responseStr = string(response)
+		if responseStr != c.config.GetResponsesMessage {
+			break
+		}
+		log.Debugf("Keep waiting")
+		randomNum := rand.Intn(14) + 1
+		time.Sleep(time.Duration(randomNum) * time.Second)
+	}
+	log.Infof(responseStr)
 	return nil
 }
 

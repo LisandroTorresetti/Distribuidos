@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var dataTypes = []string{"stations", "trips"} // Debugging data to sent: "weather", "stations", "trips"
+var dataTypes = []string{"weather", "stations", "trips"} // Debugging data to sent: "weather", "stations", "trips"
 
 func LoadClientConfig() (ClientConfig, error) {
 	configFile, err := utils.GetConfigFile("./config/config.yaml")
@@ -82,11 +82,32 @@ func main() {
 
 	log.Info("[client] Waiting for threads")
 	wg.Wait()
+
+	client := NewClient(clientConfig)
+	err = client.OpenConnection(client.config.ServerResponseAddress)
+	if err != nil {
+		log.Errorf("Error opening connection for responses: %s", err.Error())
+		return
+	}
+
+	err = client.GetResponses()
+	if err != nil {
+		log.Errorf("Error getting responses: %s", err.Error())
+		return
+	}
 	log.Info("[client] Finish main.go")
 }
 
 func sendData(client *Client, data string) error {
-	err := client.OpenConnection()
+	err := client.OpenConnection(client.config.ServerAddress)
+	defer func(client *Client) {
+		err := client.CloseConnection()
+		if err != nil {
+			log.Error("[client] error closing connection")
+			return
+		}
+		log.Info("[client] connection closed successfully!")
+	}(client)
 	if err != nil {
 		logrus.Errorf(err.Error())
 		return err
@@ -104,12 +125,6 @@ func sendData(client *Client, data string) error {
 		err = client.SendStationsData()
 	}
 
-	if err != nil {
-		logrus.Errorf(err.Error())
-		return err
-	}
-
-	err = client.CloseConnection()
 	if err != nil {
 		logrus.Errorf(err.Error())
 		return err
