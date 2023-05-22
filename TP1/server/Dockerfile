@@ -9,6 +9,9 @@ COPY ../server/handler/ ./server/handler/
 COPY ../server/*.go .
 COPY ../server/config/ ./config/
 COPY ../communication/ ./communication/
+COPY ../domain/business/ ./domain/business/
+COPY ../domain/entities/ ./domain/entities/
+
 
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o main

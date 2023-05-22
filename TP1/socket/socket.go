@@ -30,10 +30,11 @@ func NewSocket(socketConfig SocketConfig) *Socket {
 func (s *Socket) OpenConnection() error {
 	connection, err := net.Dial(s.config.Protocol, s.config.ServerAddress)
 	if err != nil {
-		log.Fatalf(
+		log.Errorf(
 			"action: connect | result: fail | error: %v",
 			err,
 		)
+		return err
 	}
 	s.connection = connection
 	return nil
@@ -54,10 +55,11 @@ func (s *Socket) CloseConnection() error {
 func (s *Socket) StartListener() error {
 	listener, err := net.Listen(s.config.Protocol, s.config.ServerAddress)
 	if err != nil {
-		log.Fatalf(
+		log.Errorf(
 			"action: get listener | result: fail | error: %v",
 			err,
 		)
+		return err
 	}
 	s.listener = listener
 	return nil
@@ -66,7 +68,7 @@ func (s *Socket) StartListener() error {
 func (s *Socket) AcceptNewConnections() (net.Conn, error) {
 	connection, err := s.listener.Accept()
 	if err != nil {
-		log.Fatalf(
+		log.Errorf(
 			"action: accept connection| result: fail | error: %v",
 			err,
 		)
@@ -112,6 +114,7 @@ func (s *Socket) Listen(targetEndMessage string, finMessages []string) ([]byte, 
 	for {
 		buffer := make([]byte, s.config.PacketLimit)
 		bytesRead, err := s.connection.Read(buffer)
+		log.Debugf("debug message: %s", string(buffer))
 		if err != nil {
 			log.Errorf("unexpected error while trying to get message: %s", err.Error())
 			return nil, err

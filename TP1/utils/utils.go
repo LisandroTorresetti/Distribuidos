@@ -2,7 +2,10 @@ package utils
 
 import (
 	"math/rand"
+	"os"
+	"os/signal"
 	"regexp"
+	"syscall"
 	"time"
 )
 
@@ -53,4 +56,11 @@ func GetTargetStage(topicName string) string {
 	regex := regexp.MustCompile(`^[^-]+-([^-]+)-topic$`)
 	matches := regex.FindStringSubmatch(topicName)
 	return matches[1]
+}
+
+// GetSignalChannel returns a channel that receive interrupt or termination signals
+func GetSignalChannel() chan os.Signal {
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
+	return signalChannel
 }

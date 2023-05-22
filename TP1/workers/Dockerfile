@@ -6,6 +6,7 @@ COPY ../go.sum .
 COPY ../utils/ ./utils/
 COPY ../communication/ ./communication/
 COPY ../domain/entities/ ./domain/entities/
+COPY ../domain/business/ ./domain/business/
 COPY ../workers/factory/ ./workers/factory/
 COPY ../workers/*.go .
 
