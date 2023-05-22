@@ -201,11 +201,9 @@ func (eof *EOFManager) handlePublishInQueue(ctx context.Context, eofMetadata ent
 	formatName := !utils.ContainsString(eofMetadata.GetStage(), eof.config.SpecialCases) &&
 		!utils.ContainsString(eofMetadata.GetStage(), eof.config.QueryHandlers)
 	if formatName {
-		log.Debugf("LICHITA VOY A FORMATEAR QUEUE, %s", targetQueueName)
 		// we have to parse it
 		targetQueueName = fmt.Sprintf(targetQueueName, eofMetadata.GetCity())
 	}
-	log.Debugf("LICHITA TARGET QUEUE: %s", targetQueueName)
 
 	err = eof.rabbitMQ.PublishMessageInQueue(ctx, targetQueueName, eofToSendBytes, contentTypeJson)
 	if err != nil {

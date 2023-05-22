@@ -31,6 +31,9 @@ counters:
   city-joiner:
     montreal: 4
 
+  #distance-calculator:
+  #  montreal: 4
+
   rain-handler:
     nn: 1
 
@@ -49,6 +52,7 @@ responses:
 
   rain-joiner: ["rainjoiner-rainhandler-queue"]
   city-joiner: ["cityjoiner-cityhandler-%s-queue"]
+  #distance-calculator: ["distancecalculator-cityhandler-topic"]
   year-joiner: ["yearjoiner-duplicateshandler-%s-queue"]
 
   rain-handler: ["response-queue"]
