@@ -1,6 +1,10 @@
 package distanceaccumulator
 
-import "tp1/domain/entities"
+import (
+	"fmt"
+	"strconv"
+	"tp1/domain/entities"
+)
 
 // DistanceAccumulator struct that collects data about the distance traveled to a given station
 // + Metadata: metadata added to the structure
@@ -23,10 +27,11 @@ func NewDistanceAccumulator(stationName string, stationID string) *DistanceAccum
 	}
 }
 
-func NewDistanceAccumulatorWithData(metadata entities.Metadata, stationName string, counter int, totalDistance float64) *DistanceAccumulator {
+func NewDistanceAccumulatorWithData(metadata entities.Metadata, stationName string, stationID string, counter int, totalDistance float64) *DistanceAccumulator {
 	return &DistanceAccumulator{
 		Metadata:      metadata,
 		StationName:   stationName,
+		StationID:     stationID,
 		Counter:       counter,
 		TotalDistance: totalDistance,
 	}
@@ -42,10 +47,6 @@ func (da *DistanceAccumulator) UpdateAccumulator(newDistance float64) {
 }
 
 func (da *DistanceAccumulator) Merge(distanceAccumulator2 *DistanceAccumulator) {
-	if da.StationName != distanceAccumulator2.StationName {
-		// ToDo: maybe we have to delete this panic
-		panic("[DistanceAccumulator] cannot merge two DistanceAccumulator with different names")
-	}
 	da.Counter += distanceAccumulator2.Counter
 	da.TotalDistance += distanceAccumulator2.TotalDistance
 }
@@ -55,4 +56,12 @@ func (da *DistanceAccumulator) GetAverageDistance() float64 {
 		panic("[DistanceAccumulator] cannot get average, counter is zero")
 	}
 	return da.TotalDistance / float64(da.Counter)
+}
+
+func (da *DistanceAccumulator) GetIDAsInt() int {
+	id, err := strconv.Atoi(da.StationID)
+	if err != nil {
+		panic(fmt.Sprintf("cannot convert string to int for DistanceAccumulator, %s", da.StationID))
+	}
+	return id
 }

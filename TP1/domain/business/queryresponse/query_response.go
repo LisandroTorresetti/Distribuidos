@@ -15,3 +15,11 @@ func NewQueryResponse(queryID string, response string, sender string, responseTy
 		QueryID:  queryID,
 	}
 }
+
+func (qr *QueryResponse) GetMetadata() entities.Metadata {
+	return qr.Metadata
+}
+
+func (qr *QueryResponse) GetQueryID() string {
+	return qr.QueryID
+}
