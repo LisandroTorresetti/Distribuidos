@@ -69,3 +69,56 @@ func (sd StationData) GetCoordinates() (float64, float64) {
 
 	return latitude, longitude
 }
+
+// NOT USED
+
+// MultipleStations has the latitude and longitude of two stations. The name corresponds to te end station
+type MultipleStations struct {
+	Metadata              entities.Metadata
+	StartStationID        int     `json:"start_station_id"`
+	EndStationID          int     `json:"end_station_id"`
+	EndStationName        string  `json:"end_station_name"`
+	YearID                int     `json:"year_id"`
+	StartStationLatitude  float64 `json:"start_station_latitude"`
+	StartStationLongitude float64 `json:"start_station_longitude"`
+	EndStationLatitude    float64 `json:"end_station_latitude"`
+	EndStationLongitude   float64 `json:"end_station_longitude"`
+}
+
+func NewMultipleStations(startStation *StationData, endStation *StationData, yearID int) *MultipleStations {
+	startLatitude, startLongitude := startStation.GetCoordinates()
+	endLatitude, endLongitude := endStation.GetCoordinates()
+	return &MultipleStations{
+		StartStationID:        startStation.Code,
+		EndStationID:          endStation.Code,
+		EndStationName:        endStation.Name,
+		YearID:                yearID,
+		StartStationLatitude:  startLatitude,
+		StartStationLongitude: startLongitude,
+		EndStationLatitude:    endLatitude,
+		EndStationLongitude:   endLongitude,
+	}
+}
+
+func (ms *MultipleStations) GetMetadata() entities.Metadata {
+	return ms.Metadata
+}
+
+// GetStartStationCoordinates returns the start station latitude and longitude
+func (ms *MultipleStations) GetStartStationCoordinates() (float64, float64) {
+	return ms.StartStationLatitude, ms.StartStationLongitude
+}
+
+// GetEndStationCoordinates returns the start station latitude and longitude
+func (ms *MultipleStations) GetEndStationCoordinates() (float64, float64) {
+	return ms.EndStationLatitude, ms.EndStationLongitude
+}
+
+func (ms *MultipleStations) GetEndStationName() string {
+	return ms.EndStationName
+}
+
+// GetCombinedIDs returns a combination of both IDs with the following structure: startStationID-endStationID
+func (ms *MultipleStations) GetCombinedIDs() string {
+	return fmt.Sprintf("%v-%v", ms.StartStationID, ms.EndStationID)
+}

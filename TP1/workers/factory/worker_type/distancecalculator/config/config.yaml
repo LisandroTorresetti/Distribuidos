@@ -1,0 +1,31 @@
+eof_type: "EOF"
+previous_stage: "cityjoiner"
+next_stage: "cityhandler"
+amount_of_partitions: 4
+
+eof_queue_config: # queue of the eof manager
+  name: "eof-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: false
+  no_wait: false
+
+input_queue: # Messages from City Joiner to Distance Calculator
+  name: "distance-calculator-queue"
+  durable: true
+  delete_when_unused: false
+  exclusive: false
+  no_wait: false
+
+exchange_output_city_handler: # messages from Distance Calculator to City Handler
+  name: "distancecalculator-cityhandler-topic"
+  type: "topic"
+  durable: true
+  auto_deleted: false
+  internal: false
+  no_wait: false
+
+quality_of_service:
+  prefetch_count: 1
+  prefetch_size: 0
+  global: false

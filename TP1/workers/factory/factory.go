@@ -3,6 +3,8 @@ package factory
 import (
 	"fmt"
 	"tp1/communication"
+	"tp1/workers/factory/worker_type/distancecalculator"
+	distanceCalculatorConfig "tp1/workers/factory/worker_type/distancecalculator/config"
 	"tp1/workers/factory/worker_type/station"
 	stationsConfig "tp1/workers/factory/worker_type/station/config"
 	"tp1/workers/factory/worker_type/trip"
@@ -12,9 +14,10 @@ import (
 )
 
 const (
-	weatherWorker  = "weather-worker"
-	tripsWorker    = "trips-worker"
-	stationsWorker = "stations-worker"
+	weatherWorker      = "weather-worker"
+	tripsWorker        = "trips-worker"
+	stationsWorker     = "stations-worker"
+	distanceCalculator = "distance-calculator"
 )
 
 type IWorker interface {
@@ -58,6 +61,15 @@ func NewWorker(workerType string) (IWorker, error) {
 			return nil, fmt.Errorf("[method: NewWorker][status: error] error getting Station Worker config: %w", err)
 		}
 		return station.NewStationWorker(cfg, rabbitMQ), nil
+	}
+
+	if workerType == distanceCalculator {
+		cfg, err := distanceCalculatorConfig.LoadConfig()
+		if err != nil {
+			return nil, fmt.Errorf("[method: NewWorker][status: error] error getting Distance Calculator config: %w", err)
+		}
+
+		return distancecalculator.NewDistanceCalculator(cfg, rabbitMQ), nil
 	}
 
 	return nil, fmt.Errorf("[method: NewWorker][status: error] Invalid worker type %s", workerType)
