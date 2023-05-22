@@ -6,7 +6,6 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/umahmood/haversine"
-	"strconv"
 	"strings"
 	"time"
 	"tp1/communication"
@@ -188,7 +187,7 @@ func (cj *CityJoiner) SendResult() error {
 	return nil
 }
 
-// SendEOF notifies the EOF Manager that the work of this joiner is done
+// SendEOF notifies the Distance Calculator that the work of this joiner is done
 func (cj *CityJoiner) SendEOF() error {
 	eofData := eof.NewEOF(cj.GetCity(), cityJoinerType, cj.GetEOFString())
 	eofDataBytes, err := json.Marshal(eofData)
@@ -240,11 +239,6 @@ outerStationsLoop:
 		for idx := range stationsData {
 			stationData := stationsData[idx]
 
-			// sanity check: there are stations that does not have latitude or longitude set, we skip them
-			if !stationData.HasValidCoordinates() {
-				continue
-			}
-
 			metadata := stationData.GetMetadata()
 
 			// sanity check
@@ -263,6 +257,12 @@ outerStationsLoop:
 
 				log.Info(cj.getLogMessage("saveStationsData", fmt.Sprintf("EOF received: %s", eofStationString), nil))
 				break outerStationsLoop
+			}
+
+			// sanity check: there are stations that does not have latitude or longitude set, we skip them
+			if !stationData.HasValidCoordinates() {
+				log.Debug("NO TENIA DATA VALIDA")
+				continue
 			}
 
 			mapKey := stationData.GetPrimaryKey()
@@ -337,17 +337,17 @@ outerTripsLoop:
 
 			distance := calculateDistance(startStation, endStation)
 
-			endStationIDStr := strconv.Itoa(tripData.EndStationCode)
-			distanceAccumulator, ok := cj.joinResult[endStationIDStr] // We need to save the ID only, because the same station is used in different years
+			primaryKeyEndStation := endStation.GetPrimaryKey()
+			distanceAccumulator, ok := cj.joinResult[primaryKeyEndStation] // We need to save the ID only, because the same station is used in different years
 			if !ok {
 				// the data about the end stations wasn't in joinResult, we have to add it
-				newDistanceAccumulator := distanceaccumulator.NewDistanceAccumulator(endStation.Name, endStationIDStr)
+				newDistanceAccumulator := distanceaccumulator.NewDistanceAccumulator(endStation.Name, primaryKeyEndStation)
 				newDistanceAccumulator.UpdateAccumulator(distance)
-				cj.joinResult[endStationIDStr] = newDistanceAccumulator
+				cj.joinResult[primaryKeyEndStation] = newDistanceAccumulator
 				continue
 			}
 			distanceAccumulator.UpdateAccumulator(distance)
-			cj.joinResult[endStationIDStr] = distanceAccumulator
+			cj.joinResult[primaryKeyEndStation] = distanceAccumulator
 		}
 	}
 

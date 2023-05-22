@@ -281,7 +281,6 @@ outerStationsLoop:
 			mapKey := stationData.GetPrimaryKey()
 			_, ok := yj.stationsMap[mapKey]
 			if !ok {
-				log.Debug(yj.getLogMessage("saveStationsData", fmt.Sprintf("LICHITA ME LLEGO ESTO: primary key: %s - station name: %s", mapKey, stationData.Name), nil))
 				yj.stationsMap[mapKey] = stationData
 			}
 		}
