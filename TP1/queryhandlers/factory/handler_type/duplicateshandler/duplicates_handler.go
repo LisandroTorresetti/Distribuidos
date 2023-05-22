@@ -133,11 +133,16 @@ func (dh *DuplicatesHandler) SendResponse() error {
 		}
 	}
 
-	log.Debugf("LICHITA QUERY 2: %v", stationNames)
+	if len(stationNames) <= 0 {
+		log.Debug("nothing to send")
+		return nil
+	}
+
+	log.Debugf("QUERY 2 (%v): %v", len(stationNames), stationNames)
 
 	responseMessage := fmt.Sprintf("Query %s result: %s", queryID, strings.Join(stationNames, "\n\t-"))
 	queryResponse := queryresponse.NewQueryResponse(queryID, responseMessage, handlerType, "response")
-	queryResponseBytes, err := json.Marshal(queryResponse)
+	queryResponseBytes, err := json.Marshal([]*queryresponse.QueryResponse{queryResponse})
 	if err != nil {
 		return fmt.Errorf("%w: error marshalling Query response message: %s", err, err.Error())
 	}

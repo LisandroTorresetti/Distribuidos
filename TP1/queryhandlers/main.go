@@ -68,12 +68,6 @@ func main() {
 		return
 	}
 
-	err = queryHandler.DeclareExchanges()
-	if err != nil {
-		log.Debug(getLogMessage(queryHandler, "error declaring exchanges", err))
-		return
-	}
-
 	/* Next steps:
 	1. Generate Data
 	2. Send Response to server

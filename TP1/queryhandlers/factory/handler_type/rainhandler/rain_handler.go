@@ -126,10 +126,10 @@ func (rh *RainHandler) GenerateResponse() error {
 func (rh *RainHandler) SendResponse() error {
 	avgDuration := rh.resultHandler.GetAverageDuration()
 	response := fmt.Sprintf("Query %s result: AVG duration %.4f", queryID, avgDuration)
-	log.Debugf("LICHITA: %s", response)
+	log.Debugf("QUERY 1: %s", response)
 
 	queryResponse := queryresponse.NewQueryResponse(queryID, response, handlerType, "response")
-	queryResponseBytes, err := json.Marshal(queryResponse)
+	queryResponseBytes, err := json.Marshal([]*queryresponse.QueryResponse{queryResponse})
 	if err != nil {
 		return fmt.Errorf("%w: error marshalling Query response message: %s", err, err.Error())
 	}

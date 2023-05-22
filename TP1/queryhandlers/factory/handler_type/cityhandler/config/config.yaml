@@ -10,7 +10,7 @@ eof_queue_config: # queue of the eof manager
   no_wait: false
 
 input_queue: # messages from City Joiner to City Handler
-  name: "cityjoiner-cityhandler-queue"
+  name: "cityjoiner-cityhandler-montreal-queue"
   durable: true
   delete_when_unused: false
   exclusive: false
@@ -22,3 +22,11 @@ output_response_queue: # messages from City Handler to Server
   delete_when_unused: false
   exclusive: false
   no_wait: false
+
+#input_exchange: # messages from Distance Calculator to City Handler
+#  name: "distancecalculator-cityhandler-topic"
+#  type: "topic"
+#  durable: true
+#  auto_deleted: false
+#  internal: false
+#  no_wait: false

@@ -60,7 +60,7 @@ func (ch *CityHandler) GetExpectedEOFString() string {
 }
 
 // DeclareQueues declares non-anonymous queues for City Handler
-// Queues: EOF queue, City Handler queue, Response queue
+// Queues: EOF queue, Response queue
 func (ch *CityHandler) DeclareQueues() error {
 	err := ch.rabbitMQ.DeclareNonAnonymousQueues([]communication.QueueDeclarationConfig{
 		ch.config.EOFQueueConfig,
@@ -98,6 +98,7 @@ finishProcessing:
 			return err
 		}
 
+		log.Debugf("SMS: %s", string(message.Body))
 		for idx := range distanceAccumulators {
 			newDistanceAccumulator := distanceAccumulators[idx]
 
@@ -118,6 +119,7 @@ finishProcessing:
 			accumulator, ok := ch.resultHandler[newDistanceAccumulator.StationID]
 			if !ok {
 				// we don't have data of the given distance accumulator
+				log.Debugf("Adding: %s with value %+v", newDistanceAccumulator.StationID, newDistanceAccumulator)
 				ch.resultHandler[newDistanceAccumulator.StationID] = newDistanceAccumulator
 				continue
 			}
@@ -138,11 +140,15 @@ func (ch *CityHandler) SendResponse() error {
 			stationNames = append(stationNames, accumulator.StationName)
 		}
 	}
-	log.Debugf("LICHITA QUERY 3: %v", stationNames)
+	if len(stationNames) <= 0 {
+		log.Debug("nothing to send")
+		return nil
+	}
+	log.Debugf("QUERY 3: %v", stationNames)
 
 	response := fmt.Sprintf("Query %s result: %s", queryID, strings.Join(stationNames, "\n\t-"))
 	queryResponse := queryresponse.NewQueryResponse(queryID, response, handlerType, "response")
-	queryResponseBytes, err := json.Marshal(queryResponse)
+	queryResponseBytes, err := json.Marshal([]*queryresponse.QueryResponse{queryResponse})
 	if err != nil {
 		return fmt.Errorf("%w: error marshalling Query response message: %s", err, err.Error())
 	}
